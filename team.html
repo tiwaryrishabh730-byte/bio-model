@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Team</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      padding: 40px 20px;
+      background: transparent;
+      color: #e8eaf6;
+      font-family: 'Outfit', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    
+    .team-header {
+      text-align: center;
+      margin-bottom: 50px;
+    }
+    
+    .team-header h1 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #00ffcc 0%, #0088ff 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 10px;
+    }
+    
+    .team-header p {
+      color: #7986a3;
+      font-size: 1.1rem;
+    }
+
+    .team-grid {
+      display: flex;
+      gap: 40px;
+      justify-content: center;
+      flex-wrap: wrap;
+      max-width: 1200px;
+      width: 100%;
+    }
+
+    .team-card {
+      background: rgba(10, 12, 25, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 20px;
+      padding: 30px 25px;
+      width: 300px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      backdrop-filter: blur(10px);
+      transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.4s ease;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+    
+    .team-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; height: 4px;
+      background: linear-gradient(90deg, #00ffcc, #0088ff);
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.4s ease;
+    }
+
+    .team-card:hover {
+      transform: translateY(-10px);
+      box-shadow: 0 20px 40px rgba(0, 255, 204, 0.15);
+      border-color: rgba(0, 255, 204, 0.3);
+    }
+    
+    .team-card:hover::before {
+      transform: scaleX(1);
+    }
+
+    .avatar-container {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      margin-bottom: 20px;
+      padding: 4px;
+      background: linear-gradient(135deg, #00ffcc, #0088ff);
+      box-shadow: 0 8px 20px rgba(0, 255, 204, 0.3);
+      position: relative;
+    }
+
+    .avatar-container img {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      object-fit: cover;
+      background-color: #1a1c29;
+      border: 2px solid #03040a;
+    }
+
+    .name {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 5px;
+    }
+
+    .division {
+      font-size: 0.9rem;
+      color: #00ffcc;
+      font-weight: 600;
+      margin-bottom: 20px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .info-list {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .info-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 15px;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.03);
+      transition: background 0.3s ease;
+    }
+    
+    .team-card:hover .info-item {
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .info-label {
+      font-size: 0.8rem;
+      color: #7986a3;
+      font-weight: 500;
+    }
+
+    .info-value {
+      font-size: 0.95rem;
+      color: #e8eaf6;
+      font-weight: 600;
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+  
+  <div class="team-header">
+    <h1>Project Team</h1>
+    <p>The minds behind the Butterfly Nanostructures Simulation</p>
+  </div>
+
+  <div class="team-grid">
+    <!-- Card 1 -->
+    <div class="team-card">
+      <div class="avatar-container">
+        <img src="paras.jpg" alt="Paras Sawla">
+      </div>
+      <div class="name">Paras Sawla</div>
+      <div class="division">Division: I2</div>
+      <div class="info-list">
+        <div class="info-item">
+          <span class="info-label">SAP ID</span>
+          <span class="info-value">70122500001</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Roll No</span>
+          <span class="info-value">I058</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 2 -->
+    <div class="team-card">
+      <div class="avatar-container">
+        <img src="ayan.jpg" alt="Ayan Hussain">
+      </div>
+      <div class="name">Ayan Hussain</div>
+      <div class="division">Division: I2</div>
+      <div class="info-list">
+        <div class="info-item">
+          <span class="info-label">SAP ID</span>
+          <span class="info-value">70122500035</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Roll No</span>
+          <span class="info-value">I064</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 3 -->
+    <div class="team-card">
+      <div class="avatar-container">
+        <img src="rishabh.jpg" alt="Rishabh Tiwary">
+      </div>
+      <div class="name">Rishabh Tiwary</div>
+      <div class="division">Division: I2</div>
+      <div class="info-list">
+        <div class="info-item">
+          <span class="info-label">SAP ID</span>
+          <span class="info-value">70122500079</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Roll No</span>
+          <span class="info-value">I075</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
