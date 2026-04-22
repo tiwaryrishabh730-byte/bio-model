@@ -1,3 +1,5 @@
+                                               *BUTTERFLY NANOSTRUCTURES & ANTICOUNTERFEITING*
+                                               
 🦋 **Structural Coloration: Butterfly Nanostructures**
 A deep dive into biomimetic multi-layered nanostructures and their applications in material science.
 
@@ -37,3 +39,5 @@ This project is live on Vercel. You can view the interactive model here:
 
 🏗️ **Design Philosophy**
 The UI follows a "Form Follows Function" approach—clean typography, high-contrast visuals, and a modular layout to ensure the technical data remains the hero of the presentation.
+
+*Made by Rishabh Tiwary*
