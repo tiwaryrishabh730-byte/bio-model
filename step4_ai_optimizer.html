@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Butterfly Nanostructures — Step 4: AI Optimizer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg:      #05060f;
+      --panel:   rgba(255,255,255,0.045);
+      --border:  rgba(255,255,255,0.10);
+      --a1:      #7c5cfc;
+      --a2:      #00e5ff;
+      --a3:      #ff4ecd;
+      --a4:      #39ff14;
+      --yellow:  #ffd600;
+      --text:    #e8eaf6;
+      --muted:   #7986a3;
+      --ai:      #a78bfa;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin:0; padding:0; }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    body::before {
+      content:''; position:fixed; inset:0;
+      background:
+        radial-gradient(ellipse 70% 50% at 10% 10%, rgba(124,92,252,0.13) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 90% 85%, rgba(0,229,255,0.10) 0%, transparent 55%),
+        radial-gradient(ellipse 50% 30% at 50% 50%, rgba(167,139,250,0.06) 0%, transparent 70%);
+      pointer-events:none; z-index:0;
+    }
+
+    /* ── Header ── */
+    header {
+      position:relative; z-index:2;
+      text-align:center;
+      padding: 38px 24px 20px;
+    }
+    .badge {
+      display:inline-block;
+      font-size:11px; font-weight:600;
+      letter-spacing:2.5px; text-transform:uppercase;
+      color:var(--ai);
+      background:rgba(167,139,250,0.12);
+      border:1px solid rgba(167,139,250,0.30);
+      padding:5px 18px; border-radius:100px;
+      margin-bottom:14px;
+    }
+    header h1 {
+      font-size: clamp(1.7rem, 3.8vw, 2.9rem);
+      font-weight:900;
+      background: linear-gradient(120deg, #fff 0%, var(--ai) 45%, var(--a2) 100%);
+      -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+      background-clip:text; line-height:1.15;
+    }
+    header p {
+      margin-top:9px; color:var(--muted);
+      font-size:0.95rem;
+      max-width:650px; margin-inline:auto;
+    }
+    .nav-links {
+      display:flex; justify-content:center; gap:10px; margin-top:14px; flex-wrap:wrap;
+    }
+    .nav-link {
+      font-size:0.78rem; font-weight:600;
+      padding:6px 16px; border-radius:100px;
+      border:1px solid var(--border);
+      color:var(--muted); text-decoration:none;
+      transition:all 0.25s;
+    }
+    .nav-link:hover { border-color:var(--a2); color:var(--a2); }
+    .nav-link.active {
+      border-color:var(--ai); color:var(--ai);
+      background:rgba(167,139,250,0.10);
+    }
+
+    /* ── Main Grid ── */
+    .main-grid {
+      position:relative; z-index:2;
+      max-width:1300px; margin:0 auto;
+      padding:0 20px 24px;
+      display:grid;
+      grid-template-columns: 320px 1fr 300px;
+      gap:18px;
+    }
+    @media (max-width:1100px) {
+      .main-grid { grid-template-columns:1fr 1fr; }
+    }
+    @media (max-width:700px) {
+      .main-grid { grid-template-columns:1fr; }
+    }
+
+    /* ── Panel ── */
+    .panel {
+      background:var(--panel);
+      border:1px solid var(--border);
+      border-radius:20px;
+      padding:22px;
+      backdrop-filter:blur(14px);
+      -webkit-backdrop-filter:blur(14px);
+    }
+    .panel-title {
+      font-size:0.68rem; font-weight:700;
+      letter-spacing:2px; text-transform:uppercase;
+      color:var(--muted); margin-bottom:18px;
+      display:flex; align-items:center; gap:8px;
+    }
+    .panel-title .dot {
+      width:8px; height:8px; border-radius:50%;
+      background:var(--ai); box-shadow:0 0 8px var(--ai);
+      flex-shrink:0;
+    }
+    .panel-title .dot.cyan { background:var(--a2); box-shadow:0 0 8px var(--a2); }
+    .panel-title .dot.green { background:var(--a4); box-shadow:0 0 8px var(--a4); }
+
+    /* ── Color Target Picker ── */
+    .color-picker-area {
+      display:flex; flex-direction:column; gap:16px;
+    }
+    .color-display {
+      height:90px; border-radius:14px;
+      border:2px solid var(--border);
+      position:relative;
+      overflow:hidden;
+      transition:background 0.4s, box-shadow 0.4s;
+      cursor:pointer;
+    }
+    .color-display-label {
+      position:absolute; bottom:10px; left:12px;
+      font-size:0.72rem; font-weight:600;
+      letter-spacing:1.5px; text-transform:uppercase;
+      color:rgba(255,255,255,0.5);
+      text-shadow:0 1px 4px rgba(0,0,0,0.6);
+    }
+    .color-display-val {
+      position:absolute; bottom:10px; right:12px;
+      font-family:'JetBrains Mono',monospace;
+      font-size:0.78rem; font-weight:600;
+      color:rgba(255,255,255,0.7);
+    }
+
+    /* Preset swatches */
+    .swatches {
+      display:grid; grid-template-columns:repeat(7, 1fr);
+      gap:7px;
+    }
+    .swatch {
+      height:32px; border-radius:8px;
+      cursor:pointer;
+      border:2px solid transparent;
+      transition:transform 0.15s, border-color 0.2s, box-shadow 0.2s;
+      position:relative;
+    }
+    .swatch:hover { transform:scale(1.15); }
+    .swatch.selected {
+      border-color:#fff;
+      box-shadow:0 0 12px rgba(255,255,255,0.4);
+    }
+
+    /* Custom picker */
+    .picker-row {
+      display:flex; align-items:center; gap:12px;
+    }
+    .picker-row label { font-size:0.82rem; color:var(--muted); flex:1; }
+    input[type=color] {
+      width:40px; height:40px;
+      border:none; border-radius:10px;
+      cursor:pointer; background:none;
+      padding:0;
+    }
+
+    /* ── AI Run Button ── */
+    .run-btn {
+      width:100%; padding:14px;
+      border-radius:14px;
+      font-family:'Outfit',sans-serif;
+      font-size:1rem; font-weight:700;
+      cursor:pointer; transition:all 0.3s;
+      display:flex; align-items:center; justify-content:center; gap:10px;
+      position:relative; overflow:hidden;
+    }
+    .run-btn::before {
+      content:'';
+      position:absolute; inset:0;
+      background:linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+      transform:translateX(-100%);
+      transition:transform 0.6s;
+    }
+    .run-btn:hover::before { transform:translateX(100%); }
+    .run-btn.idle {
+      background:linear-gradient(135deg, rgba(124,92,252,0.4), rgba(167,139,250,0.3));
+      border:1px solid rgba(167,139,250,0.45);
+      color:var(--ai);
+      box-shadow:0 0 24px rgba(124,92,252,0.18);
+    }
+    .run-btn.idle:hover {
+      box-shadow:0 0 36px rgba(124,92,252,0.35);
+      background:linear-gradient(135deg, rgba(124,92,252,0.55), rgba(167,139,250,0.45));
+    }
+    .run-btn.running {
+      background:linear-gradient(135deg, rgba(255,214,0,0.25), rgba(255,107,0,0.20));
+      border:1px solid rgba(255,214,0,0.40);
+      color:var(--yellow);
+      box-shadow:0 0 24px rgba(255,214,0,0.18);
+      cursor:not-allowed;
+    }
+    .run-btn.done {
+      background:linear-gradient(135deg, rgba(57,255,20,0.20), rgba(0,229,255,0.15));
+      border:1px solid rgba(57,255,20,0.40);
+      color:var(--a4);
+      box-shadow:0 0 24px rgba(57,255,20,0.20);
+    }
+
+    /* Spinner */
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .spinner {
+      width:16px; height:16px;
+      border:2.5px solid rgba(255,214,0,0.3);
+      border-top-color:var(--yellow);
+      border-radius:50%;
+      animation:spin 0.8s linear infinite;
+      flex-shrink:0;
+    }
+
+    /* ── Result Box ── */
+    .result-box {
+      background:rgba(0,0,0,0.35);
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:16px;
+      display:flex; flex-direction:column; gap:10px;
+      margin-top:4px;
+    }
+    .result-row {
+      display:flex; justify-content:space-between; align-items:center;
+    }
+    .result-label { font-size:0.78rem; color:var(--muted); }
+    .result-val {
+      font-family:'JetBrains Mono',monospace;
+      font-size:0.95rem; font-weight:700;
+      color:var(--a2); transition:color 0.3s;
+    }
+    .result-val.green { color:var(--a4); }
+    .result-val.gold  { color:var(--yellow); }
+
+    /* Slide in animation for results */
+    @keyframes slideIn {
+      from { opacity:0; transform:translateY(8px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+    .slide-in { animation:slideIn 0.4s ease both; }
+
+    /* ── Loss Curve Canvas ── */
+    .loss-panel { display:flex; flex-direction:column; gap:14px; }
+    .canvas-wrap { position:relative; }
+    #lossCanvas { display:block; width:100%; border-radius:12px; }
+
+    /* Axis labels */
+    .axis-labels {
+      display:flex; justify-content:space-between;
+      font-family:'JetBrains Mono',monospace;
+      font-size:0.68rem; color:var(--muted);
+      padding:0 4px;
+    }
+
+    /* Mini prediction strip */
+    .pred-strip {
+      display:flex; gap:10px; align-items:center;
+      background:rgba(0,0,0,0.30);
+      border:1px solid var(--border);
+      border-radius:12px; padding:12px 16px;
+    }
+    .pred-swatch {
+      width:38px; height:38px; border-radius:8px;
+      border:1px solid var(--border);
+      flex-shrink:0; transition:background 0.3s, box-shadow 0.4s;
+    }
+    .pred-info { flex:1; }
+    .pred-label { font-size:0.72rem; color:var(--muted); margin-bottom:3px; }
+    .pred-lambda {
+      font-family:'JetBrains Mono',monospace;
+      font-size:1.1rem; font-weight:700;
+      color:var(--a2); transition:color 0.3s;
+    }
+
+    /* ── AI Agent Log ── */
+    .log-panel { display:flex; flex-direction:column; gap:0; }
+    .log-body {
+      flex:1; overflow-y:auto;
+      max-height:420px;
+      display:flex; flex-direction:column; gap:6px;
+      padding:4px 0;
+      scrollbar-width:thin;
+      scrollbar-color:rgba(167,139,250,0.3) transparent;
+    }
+    .log-entry {
+      display:flex; gap:10px;
+      font-size:0.78rem;
+      line-height:1.5;
+      padding:6px 10px;
+      border-radius:8px;
+      background:rgba(0,0,0,0.25);
+      animation:slideIn 0.3s ease both;
+    }
+    .log-entry.info { border-left:2px solid var(--a2); }
+    .log-entry.step { border-left:2px solid var(--ai); }
+    .log-entry.warn { border-left:2px solid var(--yellow); }
+    .log-entry.success { border-left:2px solid var(--a4); }
+    .log-entry .log-icon { flex-shrink:0; font-size:0.85rem; }
+    .log-entry .log-text { color:var(--text); }
+    .log-entry .log-mono {
+      font-family:'JetBrains Mono',monospace;
+      color:var(--ai); font-size:0.75rem;
+    }
+
+    /* ── Iteration progress bar ── */
+    .iter-bar-wrap {
+      margin-top:2px;
+      background:rgba(0,0,0,0.30);
+      border:1px solid var(--border);
+      border-radius:12px; padding:14px;
+    }
+    .iter-header {
+      display:flex; justify-content:space-between;
+      font-size:0.72rem; color:var(--muted); margin-bottom:8px;
+    }
+    .iter-track {
+      height:8px; border-radius:8px;
+      background:rgba(255,255,255,0.07); overflow:hidden;
+    }
+    .iter-fill {
+      height:100%; border-radius:8px;
+      background:linear-gradient(90deg, var(--ai), var(--a2));
+      transition:width 0.15s;
+      box-shadow:0 0 8px rgba(167,139,250,0.4);
+    }
+
+    /* ── Error / Loss mini-metrics ── */
+    .loss-metrics {
+      display:grid; grid-template-columns:1fr 1fr;
+      gap:10px;
+    }
+    .loss-metric {
+      background:rgba(0,0,0,0.30);
+      border:1px solid var(--border);
+      border-radius:12px; padding:12px;
+      text-align:center;
+    }
+    .loss-metric-label { font-size:0.68rem; text-transform:uppercase; letter-spacing:1.5px; color:var(--muted); margin-bottom:6px; }
+    .loss-metric-val {
+      font-family:'JetBrains Mono',monospace;
+      font-size:1.1rem; font-weight:700;
+      color:var(--a2); transition:color 0.3s;
+    }
+
+    /* ── Bottom fact strip ── */
+    .bottom-strip {
+      position:relative; z-index:2;
+      max-width:1300px; margin:0 auto 56px;
+      padding:0 20px;
+      display:grid; grid-template-columns:1fr 1fr 1fr;
+      gap:18px;
+    }
+    @media (max-width:700px){ .bottom-strip{grid-template-columns:1fr;} }
+    .info-card {
+      background:var(--panel); border:1px solid var(--border);
+      border-radius:18px; padding:22px;
+      backdrop-filter:blur(12px);
+    }
+    .info-card-title {
+      font-size:0.68rem; font-weight:600; letter-spacing:2px;
+      text-transform:uppercase; color:var(--muted);
+      margin-bottom:12px;
+      display:flex; align-items:center; gap:8px;
+    }
+    .info-card-title::before {
+      content:''; width:7px; height:7px; border-radius:50%;
+      background:var(--ai); box-shadow:0 0 7px var(--ai);
+    }
+    .fact-num {
+      font-family:'JetBrains Mono',monospace;
+      font-size:1.8rem; font-weight:700;
+      color:var(--ai); line-height:1; margin-bottom:5px;
+    }
+    .fact-unit { font-size:0.73rem; color:var(--muted); margin-bottom:8px; }
+    .info-card p { font-size:0.82rem; color:var(--muted); line-height:1.7; }
+    .info-card strong { color:var(--text); }
+
+    footer {
+      text-align:center; font-size:0.78rem;
+      color:var(--muted); padding:18px;
+      position:relative; z-index:2;
+    }
+    footer span { color:var(--ai); }
+
+    /* Pulse animation on converge */
+    @keyframes converge-pulse {
+      0%   { box-shadow:0 0 0 0 rgba(57,255,20,0.6); }
+      70%  { box-shadow:0 0 0 20px rgba(57,255,20,0); }
+      100% { box-shadow:0 0 0 0 rgba(57,255,20,0); }
+    }
+    .converge-pulse { animation:converge-pulse 0.8s ease 3; }
+  </style>
+</head>
+<body>
+
+<!-- ── Header ── -->
+<header>
+  <div class="badge">🤖 AI Optimization Engine · Gradient Descent</div>
+  <h1>Step 4 — AI Optimizer Dashboard</h1>
+  <p>Pick a target color. The AI agent runs gradient descent to find the exact lattice spacing <em>d</em> that produces it — then plots the loss curve in real time.</p>
+  <div class="nav-links">
+    <a href="step1_physics_core.html" class="nav-link">Step 1: Physics</a>
+    <a href="step2_zoom.html" class="nav-link">Step 2: Zoom</a>
+    <a href="step3_absorber.html" class="nav-link">Step 3: Absorber</a>
+    <a href="step4_ai_optimizer.html" class="nav-link active">Step 4: AI Optimizer</a>
+  </div>
+</header>
+
+<!-- ── Main grid ── -->
+<div class="main-grid">
+
+  <!-- ─ LEFT: Target + Controls ─ -->
+  <div style="display:flex;flex-direction:column;gap:16px;">
+
+    <!-- Target Color -->
+    <div class="panel">
+      <div class="panel-title"><div class="dot"></div>Target Color</div>
+      <div class="color-picker-area">
+
+        <!-- Big display -->
+        <div class="color-display" id="colorDisplay" style="background:#00a2e0">
+          <div class="color-display-label">Target</div>
+          <div class="color-display-val" id="colorHexLabel">#00A2E0</div>
+        </div>
+
+        <!-- Preset swatches -->
+        <div class="swatches" id="swatchGrid"></div>
+
+        <!-- Custom color input -->
+        <div class="picker-row">
+          <label>Custom color</label>
+          <input type="color" id="colorPicker" value="#00a2e0"/>
+        </div>
+      </div>
+    </div>
+
+    <!-- Run button -->
+    <button class="run-btn idle" id="runBtn">
+      <span id="btnIcon">🧠</span>
+      <span id="btnText">Run AI Optimizer</span>
+    </button>
+
+    <!-- Results -->
+    <div class="panel">
+      <div class="panel-title"><div class="dot green"></div>Optimizer Results</div>
+      <div class="result-box">
+        <div class="result-row">
+          <div class="result-label">Target λ</div>
+          <div class="result-val" id="rTargetLambda">—</div>
+        </div>
+        <div class="result-row">
+          <div class="result-label">Found d</div>
+          <div class="result-val gold" id="rFoundD">—</div>
+        </div>
+        <div class="result-row">
+          <div class="result-label">Predicted λ</div>
+          <div class="result-val" id="rPredLambda">—</div>
+        </div>
+        <div class="result-row">
+          <div class="result-label">Final Error</div>
+          <div class="result-val green" id="rFinalError">—</div>
+        </div>
+        <div class="result-row">
+          <div class="result-label">Iterations</div>
+          <div class="result-val" id="rIter">—</div>
+        </div>
+        <div class="result-row">
+          <div class="result-label">Learning Rate</div>
+          <div class="result-val" id="rLR">—</div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end left col -->
+
+  <!-- ─ MIDDLE: Loss curve ─ -->
+  <div class="loss-panel">
+
+    <!-- Loss metrics -->
+    <div class="loss-metrics">
+      <div class="loss-metric">
+        <div class="loss-metric-label">Current Error</div>
+        <div class="loss-metric-val" id="mCurrentError">—</div>
+      </div>
+      <div class="loss-metric">
+        <div class="loss-metric-label">∂Loss/∂d</div>
+        <div class="loss-metric-val" id="mGradient">—</div>
+      </div>
+      <div class="loss-metric">
+        <div class="loss-metric-label">d (current)</div>
+        <div class="loss-metric-val" id="mCurrentD">—</div>
+      </div>
+      <div class="loss-metric">
+        <div class="loss-metric-label">Δd (step)</div>
+        <div class="loss-metric-val" id="mStep">—</div>
+      </div>
+    </div>
+
+    <!-- Loss curve canvas -->
+    <div class="panel" style="flex:1;padding:20px">
+      <div class="panel-title"><div class="dot cyan"></div>Live Loss Curve — MSE(d)</div>
+      <div class="canvas-wrap">
+        <canvas id="lossCanvas" height="280"></canvas>
+      </div>
+      <div class="axis-labels">
+        <span>Iteration 0</span>
+        <span id="axisMax">—</span>
+      </div>
+    </div>
+
+    <!-- Iteration bar -->
+    <div class="iter-bar-wrap">
+      <div class="iter-header">
+        <span>Gradient Descent Progress</span>
+        <span id="iterLabel">0 / 0</span>
+      </div>
+      <div class="iter-track">
+        <div class="iter-fill" id="iterFill" style="width:0%"></div>
+      </div>
+    </div>
+
+    <!-- Prediction preview -->
+    <div class="panel">
+      <div class="panel-title"><div class="dot"></div>Predictions — Target vs Candidate</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="pred-strip">
+          <div class="pred-swatch" id="targetSwatch" style="background:#00a2e0;box-shadow:0 0 14px rgba(0,162,224,0.4)"></div>
+          <div class="pred-info">
+            <div class="pred-label">Target Color</div>
+            <div class="pred-lambda" id="pTargetLambda">—</div>
+          </div>
+        </div>
+        <div class="pred-strip">
+          <div class="pred-swatch" id="predSwatch" style="background:rgba(255,255,255,0.05)"></div>
+          <div class="pred-info">
+            <div class="pred-label">AI Prediction</div>
+            <div class="pred-lambda" id="pPredLambda">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end middle -->
+
+  <!-- ─ RIGHT: Agent Log ─ -->
+  <div class="panel" style="display:flex;flex-direction:column;gap:12px;">
+    <div class="panel-title"><div class="dot"></div>AI Agent Thought Log</div>
+    <div class="log-body" id="agentLog">
+      <div class="log-entry info">
+        <span class="log-icon">💡</span>
+        <div class="log-text">Agent idle. Pick a target color and press <strong>Run AI Optimizer</strong>.</div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- end main-grid -->
+
+<!-- ── Bottom facts ── -->
+<div class="bottom-strip">
+  <div class="info-card">
+    <div class="info-card-title">Gradient Descent</div>
+    <div class="fact-num">∂L/∂d</div>
+    <div class="fact-unit">the core learning rule</div>
+    <p>At each step the agent computes <strong>how the error changes</strong> with spacing d, then nudges d in the downhill direction — identical to how neural networks learn weights.</p>
+  </div>
+  <div class="info-card">
+    <div class="info-card-title">Loss Function</div>
+    <div class="fact-num">MSE</div>
+    <div class="fact-unit">Mean Squared Error on λ</div>
+    <p>L = (λ_pred − λ_target)². Minimising this is <strong>equivalent to finding the exact nanostructure geometry</strong> that produces your target structural color.</p>
+  </div>
+  <div class="info-card">
+    <div class="info-card-title">AI × Physics Fusion</div>
+    <div class="fact-num">d*</div>
+    <div class="fact-unit">optimal lattice spacing</div>
+    <p>This dashboard is a micro-version of <strong>inverse design</strong> — a major AI research frontier where ML models are trained to output nanophotonic structures from a desired optical response.</p>
+  </div>
+</div>
+
+<footer>
+  Butterfly Nanostructures · Anticounterfeiting · Structural Colors ·
+  <span>AI Optimizer v4.0</span> · ∂L/∂d
+</footer>
+
+<!-- ════════════════════════════════════
+     JAVASCRIPT
+════════════════════════════════════ -->
+<script>
+// ────────────────────────────────
+//  PHYSICS: Bragg's Law
+// ────────────────────────────────
+const THETA_DEG = 30; // fixed at 30° (from step 1)
+const N_ORDER   = 1;
+const THETA_RAD = THETA_DEG * Math.PI / 180;
+const SIN_THETA = Math.sin(THETA_RAD);
+
+function braggLambda(d) {
+  return (2 * d * SIN_THETA) / N_ORDER;  // nm
+}
+// inverse: d = n*lambda / (2*sin(theta))
+function braggD(lambda) {
+  return (N_ORDER * lambda) / (2 * SIN_THETA);
+}
+
+// ── Wavelength → RGB ──
+function wavelengthToRGB(lambda) {
+  let r=0, g=0, b=0;
+  if      (lambda>=380 && lambda<440){ r=-(lambda-440)/60;  g=0; b=1; }
+  else if (lambda>=440 && lambda<490){ r=0; g=(lambda-440)/50; b=1; }
+  else if (lambda>=490 && lambda<510){ r=0; g=1; b=-(lambda-510)/20; }
+  else if (lambda>=510 && lambda<580){ r=(lambda-510)/70;   g=1; b=0; }
+  else if (lambda>=580 && lambda<645){ r=1; g=-(lambda-645)/65; b=0; }
+  else if (lambda>=645 && lambda<=780){ r=1; g=0; b=0; }
+  let factor=1;
+  if (lambda>=380&&lambda<420) factor=0.3+0.7*(lambda-380)/40;
+  else if (lambda>=700&&lambda<=780) factor=0.3+0.7*(780-lambda)/80;
+  return {
+    r: Math.round(255*Math.pow(r*factor,0.8)),
+    g: Math.round(255*Math.pow(g*factor,0.8)),
+    b: Math.round(255*Math.pow(b*factor,0.8))
+  };
+}
+
+function rgbToHex(r,g,b){
+  return '#'+[r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('');
+}
+
+// Hex → λ approximation (reverse: find nearest visible wavelength)
+function hexToLambda(hex) {
+  const r=parseInt(hex.slice(1,3),16);
+  const g=parseInt(hex.slice(3,5),16);
+  const b=parseInt(hex.slice(5,7),16);
+  // Hue-based approximation → λ
+  const max=Math.max(r,g,b), min=Math.min(r,g,b);
+  if (max===0) return 380; // black → UV
+  let hue=0;
+  if (max===r) hue=(60*((g-b)/(max-min))+360)%360;
+  else if (max===g) hue=(60*((b-r)/(max-min))+120);
+  else              hue=(60*((r-g)/(max-min))+240);
+  // hue 0→360 → λ 700→380
+  // map: hue 0(red)=700, 60(yellow)=580, 120(green)=550, 180(cyan)=500, 240(blue)=450, 280(violet)=390
+  const hueMap = [
+    {h:0,   l:700}, {h:15,  l:650},
+    {h:40,  l:610}, {h:60,  l:580},
+    {h:80,  l:565}, {h:120, l:540},
+    {h:165, l:510}, {h:185, l:495},
+    {h:200, l:485}, {h:220, l:470},
+    {h:240, l:450}, {h:265, l:420},
+    {h:280, l:400}, {h:310, l:390},
+    {h:330, l:390}, {h:360, l:700},
+  ];
+  // Linear interpolate
+  for (let i=0;i<hueMap.length-1;i++){
+    if (hue>=hueMap[i].h && hue<hueMap[i+1].h){
+      const t=(hue-hueMap[i].h)/(hueMap[i+1].h-hueMap[i].h);
+      return hueMap[i].l + t*(hueMap[i+1].l-hueMap[i].l);
+    }
+  }
+  return 550; // fallback green
+}
+
+// ────────────────────────────────
+//  PRESET SWATCHES
+// ────────────────────────────────
+const PRESETS = [
+  { hex:'#6600cc', name:'Violet'      },
+  { hex:'#3333ff', name:'Blue'        },
+  { hex:'#0099ff', name:'Cyan-Blue'   },
+  { hex:'#00ccaa', name:'Cyan'        },
+  { hex:'#00cc00', name:'Green'       },
+  { hex:'#ffdd00', name:'Yellow'      },
+  { hex:'#ff6600', name:'Orange'      },
+  { hex:'#ff0033', name:'Red'         },
+  { hex:'#ff33cc', name:'Pink'        },
+  { hex:'#9900ff', name:'Purple'      },
+  { hex:'#00eeff', name:'Aqua'        },
+  { hex:'#ff9900', name:'Amber'       },
+  { hex:'#00ff66', name:'Lime'        },
+  { hex:'#0044ff', name:'Indigo'      },
+];
+
+const swatchGrid = document.getElementById('swatchGrid');
+let selectedHex = '#00a2e0';
+
+PRESETS.forEach(p => {
+  const el = document.createElement('div');
+  el.className = 'swatch';
+  el.style.background = p.hex;
+  el.title = p.name;
+  el.style.boxShadow = `0 0 8px ${p.hex}66`;
+  el.addEventListener('click', () => {
+    selectedHex = p.hex;
+    updateTargetColor(p.hex);
+    document.querySelectorAll('.swatch').forEach(s => s.classList.remove('selected'));
+    el.classList.add('selected');
+    document.getElementById('colorPicker').value = p.hex;
+  });
+  swatchGrid.appendChild(el);
+});
+
+document.getElementById('colorPicker').addEventListener('input', function() {
+  selectedHex = this.value;
+  updateTargetColor(this.value);
+  document.querySelectorAll('.swatch').forEach(s => s.classList.remove('selected'));
+});
+
+function updateTargetColor(hex) {
+  const display = document.getElementById('colorDisplay');
+  display.style.background = hex;
+  const rgb = [
+    parseInt(hex.slice(1,3),16),
+    parseInt(hex.slice(3,5),16),
+    parseInt(hex.slice(5,7),16)
+  ];
+  display.style.boxShadow = `0 0 24px ${hex}88`;
+  document.getElementById('colorHexLabel').textContent = hex.toUpperCase();
+  document.getElementById('targetSwatch').style.background = hex;
+  document.getElementById('targetSwatch').style.boxShadow = `0 0 14px ${hex}88`;
+  const lambda = hexToLambda(hex);
+  document.getElementById('pTargetLambda').textContent = lambda.toFixed(1) + ' nm';
+  document.getElementById('rTargetLambda').textContent = lambda.toFixed(1) + ' nm';
+}
+updateTargetColor(selectedHex);
+
+// ────────────────────────────────
+//  LOSS CURVE CANVAS
+// ────────────────────────────────
+const lossCanvas = document.getElementById('lossCanvas');
+const lCtx       = lossCanvas.getContext('2d');
+let lcW, lcH, lcDPR;
+
+function resizeLoss() {
+  lcDPR = window.devicePixelRatio || 1;
+  const rect = lossCanvas.parentElement.getBoundingClientRect();
+  lcW = rect.width - 40;
+  lcH = +lossCanvas.getAttribute('height') || 280;
+  lossCanvas.width  = lcW * lcDPR;
+  lossCanvas.height = lcH * lcDPR;
+  lossCanvas.style.width  = lcW + 'px';
+  lossCanvas.style.height = lcH + 'px';
+  lCtx.scale(lcDPR, lcDPR);
+  drawLossCurve();
+}
+
+let lossHistory = [];   // [{iter, error, d}]
+let maxLoss     = 1;
+
+function drawLossCurve() {
+  lCtx.clearRect(0,0,lcW,lcH);
+
+  // BG
+  lCtx.fillStyle = 'rgba(5,8,25,0.95)';
+  lCtx.fillRect(0,0,lcW,lcH);
+
+  // Grid
+  const PAD = { l:44, r:16, t:14, b:36 };
+  const gW  = lcW - PAD.l - PAD.r;
+  const gH  = lcH - PAD.t - PAD.b;
+
+  lCtx.strokeStyle = 'rgba(255,255,255,0.05)';
+  lCtx.lineWidth = 1;
+  for (let i=0;i<=5;i++){
+    const y = PAD.t + (gH/5)*i;
+    lCtx.beginPath(); lCtx.moveTo(PAD.l,y); lCtx.lineTo(PAD.l+gW,y); lCtx.stroke();
+    // Y label
+    const val = (maxLoss*(1-i/5)).toFixed(1);
+    lCtx.fillStyle='rgba(255,255,255,0.25)';
+    lCtx.font='9px JetBrains Mono,monospace';
+    lCtx.textAlign='right';
+    lCtx.fillText(val, PAD.l-4, y+3);
+  }
+  for (let i=0;i<=4;i++){
+    const x = PAD.l + (gW/4)*i;
+    lCtx.beginPath(); lCtx.moveTo(x,PAD.t); lCtx.lineTo(x,PAD.t+gH); lCtx.stroke();
+  }
+
+  // Axes
+  lCtx.strokeStyle = 'rgba(255,255,255,0.20)';
+  lCtx.lineWidth = 1.5;
+  lCtx.beginPath(); lCtx.moveTo(PAD.l,PAD.t); lCtx.lineTo(PAD.l,PAD.t+gH); lCtx.stroke();
+  lCtx.beginPath(); lCtx.moveTo(PAD.l,PAD.t+gH); lCtx.lineTo(PAD.l+gW,PAD.t+gH); lCtx.stroke();
+
+  // Axis titles
+  lCtx.fillStyle='rgba(255,255,255,0.3)';
+  lCtx.font='10px Outfit,sans-serif';
+  lCtx.textAlign='center';
+  lCtx.fillText('Iteration', PAD.l+gW/2, lcH-4);
+  lCtx.save();
+  lCtx.translate(12, PAD.t+gH/2);
+  lCtx.rotate(-Math.PI/2);
+  lCtx.fillText('MSE Loss', 0, 0);
+  lCtx.restore();
+
+  if (lossHistory.length < 2) return;
+
+  const N = lossHistory.length;
+  maxLoss = lossHistory.reduce((m,e)=>Math.max(m,e.error),0) || 1;
+
+  // Gradient under curve
+  const grad = lCtx.createLinearGradient(0, PAD.t, 0, PAD.t+gH);
+  grad.addColorStop(0,   'rgba(124,92,252,0.35)');
+  grad.addColorStop(0.6, 'rgba(0,229,255,0.12)');
+  grad.addColorStop(1,   'rgba(57,255,20,0.04)');
+
+  lCtx.beginPath();
+  lossHistory.forEach((pt,i)=>{
+    const x = PAD.l + (i/(N-1))*gW;
+    const y = PAD.t + (1 - pt.error/maxLoss)*gH;
+    i===0 ? lCtx.moveTo(x,y) : lCtx.lineTo(x,y);
+  });
+  // Close for fill
+  lCtx.lineTo(PAD.l+gW, PAD.t+gH);
+  lCtx.lineTo(PAD.l, PAD.t+gH);
+  lCtx.closePath();
+  lCtx.fillStyle = grad;
+  lCtx.fill();
+
+  // Main loss line
+  lCtx.beginPath();
+  lCtx.strokeStyle = '#7c5cfc';
+  lCtx.lineWidth = 2.5;
+  lCtx.shadowColor = '#7c5cfc';
+  lCtx.shadowBlur  = 8;
+  lossHistory.forEach((pt,i)=>{
+    const x = PAD.l + (i/(N-1))*gW;
+    const y = PAD.t + (1 - pt.error/maxLoss)*gH;
+    i===0 ? lCtx.moveTo(x,y) : lCtx.lineTo(x,y);
+  });
+  lCtx.stroke(); lCtx.shadowBlur=0;
+
+  // Converged portion green gradient
+  const convergeIdx = lossHistory.findIndex(e => e.error < 0.5);
+  if (convergeIdx > 0 && convergeIdx < N-1) {
+    lCtx.beginPath();
+    lCtx.strokeStyle = '#39ff14';
+    lCtx.lineWidth   = 2.5;
+    lCtx.shadowColor = '#39ff14'; lCtx.shadowBlur = 10;
+    for (let i=convergeIdx; i<N; i++){
+      const x = PAD.l + (i/(N-1))*gW;
+      const y = PAD.t + (1 - lossHistory[i].error/maxLoss)*gH;
+      i===convergeIdx ? lCtx.moveTo(x,y) : lCtx.lineTo(x,y);
+    }
+    lCtx.stroke(); lCtx.shadowBlur=0;
+  }
+
+  // Current position dot
+  const last = lossHistory[N-1];
+  const lx   = PAD.l + gW;
+  const ly   = PAD.t + (1 - last.error/maxLoss)*gH;
+  lCtx.beginPath();
+  lCtx.arc(lx, ly, 5, 0, Math.PI*2);
+  const dotColor = last.error < 2 ? '#39ff14' : '#7c5cfc';
+  lCtx.fillStyle  = dotColor;
+  lCtx.shadowColor= dotColor; lCtx.shadowBlur=14;
+  lCtx.fill(); lCtx.shadowBlur=0;
+
+  // Horizontal dotted target line (error = 0)
+  lCtx.setLineDash([4,4]);
+  lCtx.strokeStyle='rgba(57,255,20,0.25)';lCtx.lineWidth=1;
+  const zeroY=PAD.t+gH;
+  lCtx.beginPath();lCtx.moveTo(PAD.l,zeroY);lCtx.lineTo(PAD.l+gW,zeroY);lCtx.stroke();
+  lCtx.setLineDash([]);
+
+  // "Target: 0" label
+  lCtx.fillStyle='rgba(57,255,20,0.4)';
+  lCtx.font='9px JetBrains Mono,monospace';
+  lCtx.textAlign='left';
+  lCtx.fillText('Error=0', PAD.l+4, zeroY-4);
+}
+
+// ────────────────────────────────
+//  AGENT LOG
+// ────────────────────────────────
+const logBody = document.getElementById('agentLog');
+
+function log(type, icon, html) {
+  const el = document.createElement('div');
+  el.className = `log-entry ${type}`;
+  el.innerHTML = `<span class="log-icon">${icon}</span><div class="log-text">${html}</div>`;
+  logBody.appendChild(el);
+  logBody.scrollTop = logBody.scrollHeight;
+}
+
+function clearLog() {
+  logBody.innerHTML = '';
+}
+
+// ────────────────────────────────
+//  GRADIENT DESCENT ENGINE
+// ────────────────────────────────
+let running = false;
+let animId;
+
+const MAX_ITER = 120;
+let currentIter, currentD, lr, targetLambda, errors;
+
+function initOptimizer() {
+  targetLambda = hexToLambda(selectedHex);
+  const targetD_true = braggD(targetLambda);
+
+  // Start from a random initial d in [50, 650]
+  const startD = 50 + Math.random() * 600;
+  currentD     = startD;
+  currentIter  = 0;
+  lr           = 18.0;      // initial learning rate (nm per step)
+  errors       = [];
+  lossHistory  = [];
+
+  document.getElementById('axisMax').textContent = 'Iteration ' + MAX_ITER;
+  document.getElementById('iterLabel').textContent = '0 / ' + MAX_ITER;
+  document.getElementById('iterFill').style.width = '0%';
+
+  clearLog();
+  log('info', '🧠', `AI Agent initialised. Target color <strong>${selectedHex.toUpperCase()}</strong>`);
+  log('info', '📡', `Mapped to wavelength: <span class="log-mono">λ_target = ${targetLambda.toFixed(1)} nm</span>`);
+  log('info', '🔢', `True optimal d (analytic): <span class="log-mono">${targetD_true.toFixed(1)} nm</span>`);
+  log('step', '🚀', `Starting gradient descent from <span class="log-mono">d₀ = ${startD.toFixed(1)} nm</span>`);
+  log('step', '⚙️', `Hyperparameters: <span class="log-mono">α = ${lr}, max_iter = ${MAX_ITER}</span>`);
+
+  document.getElementById('rFoundD').textContent    = '—';
+  document.getElementById('rPredLambda').textContent = '—';
+  document.getElementById('rFinalError').textContent = '—';
+  document.getElementById('rIter').textContent       = '—';
+  document.getElementById('rLR').textContent         = '—';
+
+  document.getElementById('predSwatch').style.background = 'rgba(255,255,255,0.05)';
+  document.getElementById('pPredLambda').textContent = '—';
+}
+
+function gradientDescentStep() {
+  // Forward pass: predict lambda from current d
+  const predLambda = braggLambda(currentD);
+
+  // Loss: MSE on wavelength
+  const error   = Math.pow(predLambda - targetLambda, 2);
+
+  // Gradient: dL/dd = 2*(predLambda - targetLambda) * dLambda/dd
+  // dLambda/dd = 2*sin(theta)/n = 2*SIN_THETA (constant)
+  const grad    = 2 * (predLambda - targetLambda) * (2 * SIN_THETA / N_ORDER);
+
+  // Update step
+  const step    = lr * grad;
+  const newD    = Math.max(50, Math.min(700, currentD - step));
+
+  lossHistory.push({ iter:currentIter, error, d:currentD });
+
+  // Update live metrics
+  document.getElementById('mCurrentError').textContent = error.toFixed(2);
+  document.getElementById('mGradient').textContent     = grad.toFixed(3);
+  document.getElementById('mCurrentD').textContent     = currentD.toFixed(1)+' nm';
+  document.getElementById('mStep').textContent         = (-step).toFixed(2)+' nm';
+
+  // Update prediction swatch
+  const predRGB = wavelengthToRGB(predLambda);
+  const predHex = rgbToHex(predRGB.r, predRGB.g, predRGB.b);
+  document.getElementById('predSwatch').style.background = predHex;
+  document.getElementById('predSwatch').style.boxShadow  = `0 0 12px ${predHex}88`;
+  document.getElementById('pPredLambda').textContent     = predLambda.toFixed(1)+' nm';
+
+  // Iteration bar
+  document.getElementById('iterFill').style.width  = (currentIter/MAX_ITER*100)+'%';
+  document.getElementById('iterLabel').textContent = currentIter+' / '+MAX_ITER;
+
+  // LR decay every 20 steps
+  if (currentIter > 0 && currentIter % 20 === 0) {
+    const oldLR = lr;
+    lr *= 0.55;
+    log('warn', '📉', `LR decay at iter ${currentIter}: <span class="log-mono">${oldLR.toFixed(2)} → ${lr.toFixed(3)}</span>`);
+  }
+
+  // Log milestones
+  if (currentIter % 15 === 0) {
+    log('step', '🔍',
+      `[${String(currentIter).padStart(3,'0')}] d=<span class="log-mono">${currentD.toFixed(1)}nm</span> `+
+      `λ=<span class="log-mono">${predLambda.toFixed(1)}nm</span> `+
+      `L=<span class="log-mono">${error.toFixed(2)}</span>`
+    );
+  }
+
+  currentD = newD;
+  currentIter++;
+
+  drawLossCurve();
+
+  return { error, predLambda };
+}
+
+// ────────────────────────────────
+//  ANIMATION RUNNER (async loop)
+// ────────────────────────────────
+function runStep(targetD_true) {
+  if (!running) return;
+  if (currentIter >= MAX_ITER) {
+    finalize();
+    return;
+  }
+
+  const { error, predLambda } = gradientDescentStep();
+
+  // Check convergence
+  if (error < 0.05) {
+    log('success', '✅', `<strong>Converged!</strong> Error = <span class="log-mono">${error.toFixed(4)}</span> at iter ${currentIter}`);
+    finalize();
+    return;
+  }
+
+  // Variable speed — faster early, slow near convergence for drama
+  const delay = error > 500 ? 18 : error > 50 ? 30 : error > 5 ? 45 : 60;
+  setTimeout(() => runStep(targetD_true), delay);
+}
+
+function finalize() {
+  running = false;
+
+  const predLambda = braggLambda(currentD);
+  const finalError = Math.pow(predLambda - targetLambda, 2);
+  const predRGB    = wavelengthToRGB(predLambda);
+  const predHex    = rgbToHex(predRGB.r, predRGB.g, predRGB.b);
+
+  // Fill results
+  document.getElementById('rFoundD').textContent        = currentD.toFixed(2)+' nm';
+  document.getElementById('rPredLambda').textContent     = predLambda.toFixed(2)+' nm';
+  document.getElementById('rFinalError').textContent     = finalError.toFixed(4);
+  document.getElementById('rIter').textContent           = currentIter;
+  document.getElementById('rLR').textContent             = lr.toFixed(4);
+  document.getElementById('iterFill').style.width        = '100%';
+  document.getElementById('iterLabel').textContent       = currentIter+' / '+MAX_ITER;
+
+  log('success', '🏆', `Optimization complete in <strong>${currentIter} iterations</strong>`);
+  log('success', '🎨', `Optimal d* = <span class="log-mono">${currentD.toFixed(2)} nm</span>`);
+  log('success', '🔬', `Predicted λ = <span class="log-mono">${predLambda.toFixed(2)} nm</span>`);
+  log('info',    '💡', `Final MSE = <span class="log-mono">${finalError.toFixed(4)}</span>`);
+
+  // Converge pulse on results
+  document.getElementById('rFoundD').classList.add('converge-pulse');
+
+  // Update button
+  const btn = document.getElementById('runBtn');
+  btn.className = 'run-btn done';
+  document.getElementById('btnIcon').textContent = '✅';
+  document.getElementById('btnText').textContent = 'Optimization Complete — Run Again';
+
+  // Final loss curve redraw
+  lossHistory.push({ iter:currentIter, error:finalError, d:currentD });
+  drawLossCurve();
+}
+
+// ────────────────────────────────
+//  RUN BUTTON
+// ────────────────────────────────
+document.getElementById('runBtn').addEventListener('click', () => {
+  if (running) return;
+  running = true;
+
+  const btn = document.getElementById('runBtn');
+  btn.className = 'run-btn running';
+  document.getElementById('btnIcon').innerHTML = '<div class="spinner"></div>';
+  document.getElementById('btnText').textContent = 'AI Optimizing...';
+
+  initOptimizer();
+  const targetD_true = braggD(targetLambda);
+  runStep(targetD_true);
+});
+
+// ────────────────────────────────
+//  INIT + RESIZE
+// ────────────────────────────────
+window.addEventListener('resize', () => { resizeLoss(); });
+resizeLoss();
+</script>
+</body>
+</html>

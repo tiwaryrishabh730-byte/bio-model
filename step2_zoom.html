@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Butterfly Nanostructures — Step 2: Macro-to-Nano Zoom</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg:      #05060f;
+      --panel:   rgba(255,255,255,0.045);
+      --border:  rgba(255,255,255,0.10);
+      --accent1: #7c5cfc;
+      --accent2: #00e5ff;
+      --accent3: #ff4ecd;
+      --accent4: #39ff14;
+      --chitin:  #4fc3f7;
+      --air:     rgba(255,255,255,0.08);
+      --text:    #e8eaf6;
+      --muted:   #7986a3;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin:0; padding:0; }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Ambient BG ── */
+    body::before {
+      content:'';
+      position:fixed; inset:0;
+      background:
+        radial-gradient(ellipse 80% 50% at 15% 10%, rgba(124,92,252,0.13) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 85% 85%, rgba(0,229,255,0.10) 0%, transparent 55%);
+      pointer-events:none; z-index:0;
+    }
+
+    /* ── HEADER ── */
+    header {
+      position:relative; z-index:2;
+      text-align:center;
+      padding: 44px 24px 26px;
+    }
+    .badge {
+      display:inline-block;
+      font-size:11px; font-weight:600;
+      letter-spacing:2.5px; text-transform:uppercase;
+      color:var(--accent2);
+      background:rgba(0,229,255,0.10);
+      border:1px solid rgba(0,229,255,0.25);
+      padding:5px 16px; border-radius:100px;
+      margin-bottom:16px;
+    }
+    header h1 {
+      font-size: clamp(1.75rem, 4vw, 3rem);
+      font-weight:900;
+      background: linear-gradient(120deg, #fff 0%, var(--accent2) 50%, var(--accent1) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height:1.15;
+    }
+    header p {
+      margin-top:10px;
+      color:var(--muted);
+      font-size:0.97rem;
+      max-width:600px;
+      margin-inline:auto;
+    }
+
+    /* ── NAV LINKS ── */
+    .nav-links {
+      display:flex;
+      justify-content:center;
+      gap:14px;
+      margin-top:18px;
+    }
+    .nav-link {
+      font-size:0.8rem;
+      font-weight:600;
+      padding:7px 18px;
+      border-radius:100px;
+      border:1px solid var(--border);
+      color:var(--muted);
+      text-decoration:none;
+      transition:all 0.25s;
+    }
+    .nav-link:hover { border-color:var(--accent2); color:var(--accent2); }
+    .nav-link.active { border-color:var(--accent1); color:var(--accent1); background:rgba(124,92,252,0.10); }
+
+    /* ══════════════════════════════════════
+       STAGE — full-width zoom theatre
+    ══════════════════════════════════════ */
+    .stage {
+      position:relative; z-index:2;
+      width:100%;
+      max-width:1100px;
+      margin:0 auto;
+      padding:0 24px;
+    }
+
+    /* Outer glass card */
+    .zoom-theatre {
+      position:relative;
+      overflow:hidden;
+      border-radius:28px;
+      border:1px solid var(--border);
+      background:rgba(0,0,0,0.55);
+      backdrop-filter:blur(16px);
+      -webkit-backdrop-filter:blur(16px);
+      /* fixed height for the theatre */
+      height:520px;
+      cursor:pointer;
+      box-shadow: 0 0 0 1px rgba(124,92,252,0.10), 0 32px 80px rgba(0,0,0,0.6);
+      transition: box-shadow 0.4s;
+    }
+    .zoom-theatre:hover {
+      box-shadow: 0 0 0 1px rgba(0,229,255,0.20), 0 32px 80px rgba(0,0,0,0.7);
+    }
+
+    /* ──  LAYER 1: Butterfly photo ── */
+    #butterflyLayer {
+      position:absolute; inset:0;
+      display:flex; flex-direction:column;
+      align-items:center; justify-content:center;
+      transition: opacity 0.8s cubic-bezier(0.4,0,0.2,1),
+                  transform 1.4s cubic-bezier(0.22,1,0.36,1);
+      will-change: transform, opacity;
+      z-index:2;
+    }
+    #butterflyImg {
+      width:100%; height:520px;
+      object-fit:cover;
+      object-position:center;
+      display:block;
+      border-radius:28px;
+      transition: filter 0.8s ease;
+    }
+    /* Scan-line vignette overlay */
+    #butterflyLayer::after {
+      content:'';
+      position:absolute; inset:0;
+      background:
+        radial-gradient(ellipse 70% 60% at 50% 50%, transparent 40%, rgba(5,6,15,0.65) 100%);
+      border-radius:28px;
+      pointer-events:none;
+    }
+
+    /* Click-to-zoom prompt */
+    .zoom-prompt {
+      position:absolute;
+      bottom:32px; left:50%; transform:translateX(-50%);
+      display:flex; align-items:center; gap:10px;
+      background:rgba(0,0,0,0.6);
+      border:1px solid rgba(0,229,255,0.30);
+      border-radius:100px;
+      padding:10px 22px;
+      font-size:0.85rem; font-weight:600;
+      color:var(--accent2);
+      backdrop-filter:blur(8px);
+      pointer-events:none;
+      opacity:1;
+      transition: opacity 0.5s;
+      z-index:10;
+      white-space:nowrap;
+    }
+    .zoom-prompt .icon {
+      font-size:1.1rem;
+      animation: pulse 1.8s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%,100%{ transform:scale(1); opacity:1; }
+      50%{ transform:scale(1.2); opacity:0.7; }
+    }
+
+    /* Magnifier ring that follows cursor */
+    #magGlass {
+      position:absolute;
+      width:120px; height:120px;
+      border:2px solid rgba(0,229,255,0.5);
+      border-radius:50%;
+      box-shadow: 0 0 0 1px rgba(0,229,255,0.15),
+                  0 0 30px rgba(0,229,255,0.25),
+                  inset 0 0 20px rgba(0,229,255,0.06);
+      pointer-events:none;
+      opacity:0;
+      transform:translate(-50%,-50%);
+      transition:opacity 0.3s;
+      z-index:9;
+    }
+    #magGlass.visible { opacity:1; }
+
+    /* Scale bar */
+    #scalebar {
+      position:absolute;
+      bottom:32px; right:32px;
+      display:flex; flex-direction:column; align-items:flex-end;
+      gap:4px;
+      opacity:1;
+      transition:opacity 0.5s;
+      z-index:10;
+      pointer-events:none;
+    }
+    .scale-line {
+      width:80px; height:3px;
+      background:rgba(255,255,255,0.7);
+      border-radius:2px;
+      position:relative;
+    }
+    .scale-line::before,.scale-line::after {
+      content:'';
+      position:absolute;
+      top:-4px; width:2px; height:11px;
+      background:rgba(255,255,255,0.7);
+    }
+    .scale-line::before { left:0; }
+    .scale-line::after  { right:0; }
+    .scale-label {
+      font-family:'JetBrains Mono',monospace;
+      font-size:0.72rem;
+      color:rgba(255,255,255,0.7);
+      text-align:right;
+    }
+
+    /* Zoom-level indicator */
+    #zoomIndicator {
+      position:absolute;
+      top:20px; right:20px;
+      font-family:'JetBrains Mono',monospace;
+      font-size:0.8rem;
+      font-weight:600;
+      color:var(--accent2);
+      background:rgba(0,0,0,0.55);
+      border:1px solid rgba(0,229,255,0.25);
+      border-radius:8px;
+      padding:6px 14px;
+      z-index:10;
+      pointer-events:none;
+      letter-spacing:1px;
+      opacity:0;
+      transition:opacity 0.5s;
+    }
+    #zoomIndicator.visible { opacity:1; }
+
+    /* ──  LAYER 2: Schematic ── */
+    #schematicLayer {
+      position:absolute; inset:0;
+      opacity:0;
+      pointer-events:none;
+      transition: opacity 0.9s cubic-bezier(0.4,0,0.2,1);
+      z-index:3;
+      display:flex;
+      align-items:stretch;
+    }
+    #schematicLayer.visible {
+      opacity:1;
+      pointer-events:auto;
+    }
+
+    /* ── Schematic Layout ── */
+    .schematic-inner {
+      display:grid;
+      grid-template-columns:1fr 340px;
+      width:100%;
+      gap:0;
+    }
+
+    /* Canvas area */
+    .canvas-pane {
+      position:relative;
+      background:rgba(2,4,18,0.92);
+      border-right:1px solid var(--border);
+      display:flex; align-items:center; justify-content:center;
+    }
+    #lamellaeCanvas {
+      display:block;
+    }
+
+    /* Info pane */
+    .info-pane {
+      padding:30px 26px;
+      display:flex;
+      flex-direction:column;
+      gap:18px;
+      background:rgba(5,6,15,0.85);
+      overflow-y:auto;
+    }
+    .info-pane-title {
+      font-size:1.1rem;
+      font-weight:700;
+      color:#fff;
+      line-height:1.3;
+    }
+    .info-pane-sub {
+      font-size:0.78rem;
+      color:var(--muted);
+      margin-top:4px;
+      line-height:1.6;
+    }
+
+    /* Chitin / Air legend */
+    .legend-row {
+      display:flex;
+      align-items:center;
+      gap:12px;
+      padding:10px 14px;
+      border-radius:12px;
+      border:1px solid var(--border);
+      background:rgba(255,255,255,0.03);
+    }
+    .legend-swatch {
+      width:28px; height:28px;
+      border-radius:6px;
+      flex-shrink:0;
+    }
+    .legend-name {
+      font-size:0.88rem;
+      font-weight:600;
+    }
+    .legend-desc {
+      font-size:0.72rem;
+      color:var(--muted);
+      margin-top:2px;
+      line-height:1.5;
+    }
+
+    /* Spacing readout */
+    .spacing-readout {
+      background:rgba(0,0,0,0.4);
+      border:1px solid rgba(0,229,255,0.20);
+      border-radius:14px;
+      padding:16px;
+    }
+    .spacing-readout-label {
+      font-size:0.7rem;
+      text-transform:uppercase;
+      letter-spacing:1.5px;
+      color:var(--muted);
+      margin-bottom:10px;
+    }
+    .spacing-readout-value {
+      font-family:'JetBrains Mono',monospace;
+      font-size:1.5rem;
+      font-weight:700;
+      color:var(--accent2);
+    }
+
+    /* Slider in schematic */
+    .scheme-slider-group { display:flex; flex-direction:column; gap:8px; }
+    .scheme-slider-label {
+      font-size:0.82rem;
+      font-weight:500;
+      display:flex;
+      justify-content:space-between;
+    }
+    .scheme-slider-label span { color:var(--accent2); font-family:'JetBrains Mono',monospace; }
+    input[type=range] {
+      -webkit-appearance:none; appearance:none;
+      width:100%;
+      height:6px;
+      background:rgba(255,255,255,0.08);
+      border-radius:6px;
+      outline:none;
+      cursor:pointer;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance:none;
+      width:20px; height:20px;
+      border-radius:50%;
+      background:linear-gradient(135deg, var(--accent2), var(--accent1));
+      box-shadow: 0 0 12px rgba(0,229,255,0.5);
+      cursor:pointer;
+      transition: transform 0.15s;
+    }
+    input[type=range]::-webkit-slider-thumb:hover { transform:scale(1.25); }
+
+    /* Bragg readout */
+    .bragg-result {
+      background:rgba(124,92,252,0.08);
+      border:1px solid rgba(124,92,252,0.20);
+      border-radius:12px;
+      padding:14px;
+      font-family:'JetBrains Mono',monospace;
+      font-size:0.82rem;
+      line-height:1.8;
+    }
+    .bragg-result .hl { color:var(--accent2); font-weight:700; }
+    .bragg-result .hl2 { color:var(--accent4); font-weight:700; }
+
+    /* "Return" button */
+    .return-btn {
+      margin-top:auto;
+      padding:11px 0;
+      background:rgba(255,255,255,0.05);
+      border:1px solid var(--border);
+      border-radius:12px;
+      color:var(--muted);
+      font-size:0.82rem;
+      font-weight:600;
+      cursor:pointer;
+      text-align:center;
+      transition:all 0.25s;
+      font-family:'Outfit',sans-serif;
+    }
+    .return-btn:hover {
+      border-color:var(--accent3);
+      color:var(--accent3);
+      background:rgba(255,78,205,0.06);
+    }
+
+    /* ── ZOOM TRANSITION: cinematic scan lines ── */
+    #scanOverlay {
+      position:absolute; inset:0;
+      z-index:20;
+      pointer-events:none;
+      opacity:0;
+      background:repeating-linear-gradient(
+        0deg,
+        rgba(0,229,255,0.04) 0px,
+        rgba(0,229,255,0.04) 1px,
+        transparent 1px,
+        transparent 4px
+      );
+      transition: opacity 0.3s;
+    }
+    #scanOverlay.active { opacity:1; }
+
+    /* ZOOM ring burst */
+    #zoomBurst {
+      position:absolute;
+      width:120px; height:120px;
+      border:2px solid rgba(0,229,255,0.8);
+      border-radius:50%;
+      top:50%; left:50%;
+      transform:translate(-50%,-50%) scale(1);
+      pointer-events:none;
+      opacity:0;
+      z-index:21;
+      transition: transform 0.9s cubic-bezier(0.1,0.6,0.2,1), opacity 0.9s;
+    }
+    #zoomBurst.burst {
+      transform:translate(-50%,-50%) scale(30);
+      opacity:0;
+    }
+
+    /* ── GRID (controls below) ── */
+    .bottom-strip {
+      position:relative; z-index:2;
+      max-width:1100px;
+      margin:24px auto 60px;
+      padding:0 24px;
+      display:grid;
+      grid-template-columns:1fr 1fr 1fr;
+      gap:18px;
+    }
+
+    @media (max-width:700px) {
+      .bottom-strip { grid-template-columns:1fr; }
+      .schematic-inner { grid-template-columns:1fr; }
+      .info-pane { max-height:260px; }
+    }
+
+    .info-card {
+      background:var(--panel);
+      border:1px solid var(--border);
+      border-radius:18px;
+      padding:22px;
+      backdrop-filter:blur(12px);
+    }
+    .info-card-title {
+      font-size:0.7rem;
+      font-weight:600;
+      letter-spacing:2px;
+      text-transform:uppercase;
+      color:var(--muted);
+      margin-bottom:14px;
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+    .info-card-title::before {
+      content:'';
+      width:7px; height:7px;
+      border-radius:50%;
+      background:var(--accent1);
+      box-shadow:0 0 8px var(--accent1);
+      flex-shrink:0;
+    }
+    .info-card p {
+      font-size:0.83rem;
+      color:var(--muted);
+      line-height:1.7;
+    }
+    .info-card strong { color:var(--text); }
+
+    /* Micro-fact number */
+    .fact-num {
+      font-family:'JetBrains Mono',monospace;
+      font-size:2rem;
+      font-weight:700;
+      color:var(--accent2);
+      line-height:1;
+      margin-bottom:6px;
+    }
+    .fact-unit { font-size:0.75rem; color:var(--muted); }
+
+    footer {
+      text-align:center;
+      font-size:0.78rem;
+      color:var(--muted);
+      padding:20px;
+      position:relative; z-index:2;
+    }
+    footer span { color:var(--accent2); }
+  </style>
+</head>
+<body>
+
+<!-- ══════════ HEADER ══════════ -->
+<header>
+  <div class="badge">Butterfly Nanostructures · Anticounterfeiting</div>
+  <h1>Step 2 — Macro-to-Nano Zoom</h1>
+  <p>From a living butterfly to the 200 nm scale of its "Christmas Tree" lamellae — click to dive in.</p>
+  <div class="nav-links">
+    <a href="step1_physics_core.html" class="nav-link">← Step 1: Physics Core</a>
+    <a href="step2_zoom.html" class="nav-link active">Step 2: Macro-to-Nano Zoom</a>
+  </div>
+</header>
+
+<!-- ══════════ ZOOM THEATRE ══════════ -->
+<div class="stage">
+  <div class="zoom-theatre" id="zoomTheatre">
+
+    <!-- Scan-line overlay -->
+    <div id="scanOverlay"></div>
+
+    <!-- Burst ring -->
+    <div id="zoomBurst"></div>
+
+    <!-- Layer 1: Butterfly -->
+    <div id="butterflyLayer">
+      <img id="butterflyImg" src="morpho_butterfly.png" alt="Morpho butterfly" draggable="false"/>
+    </div>
+
+    <!-- Click prompt -->
+    <div class="zoom-prompt" id="zoomPrompt">
+      <span class="icon">🔬</span>
+      Click to zoom 100× into the nanostructure
+    </div>
+
+    <!-- Magnifier circle -->
+    <div id="magGlass"></div>
+
+    <!-- Scale bar (macro) -->
+    <div id="scalebar" class="scalebar-macro">
+      <div class="scale-line"></div>
+      <div class="scale-label" id="scaleLabel">~10 cm</div>
+    </div>
+
+    <!-- Zoom indicator -->
+    <div id="zoomIndicator">1×</div>
+
+    <!-- Layer 2: Schematic -->
+    <div id="schematicLayer">
+      <div class="schematic-inner">
+
+        <!-- Canvas -->
+        <div class="canvas-pane">
+          <canvas id="lamellaeCanvas"></canvas>
+        </div>
+
+        <!-- Info pane -->
+        <div class="info-pane">
+          <div>
+            <div class="info-pane-title">Christmas Tree Lamellae</div>
+            <div class="info-pane-sub">
+              Each wing scale of a <em>Morpho</em> butterfly contains rows of
+              microscopic "Christmas tree" ridges — alternating thin-film stacks of
+              <strong>chitin</strong> and <strong>air</strong> that produce
+              structural color through thin-film interference.
+            </div>
+          </div>
+
+          <!-- Legend -->
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div class="legend-row">
+              <div class="legend-swatch" style="background:linear-gradient(135deg,#4fc3f7,#0288d1);box-shadow:0 0 10px rgba(79,195,247,0.4)"></div>
+              <div>
+                <div class="legend-name" style="color:#4fc3f7">Chitin (n ≈ 1.56)</div>
+                <div class="legend-desc">Structural biopolymer — forms the solid lamellae sheets. High refractive index.</div>
+              </div>
+            </div>
+            <div class="legend-row">
+              <div class="legend-swatch" style="background:rgba(180,220,255,0.10);border:1px dashed rgba(180,220,255,0.3)"></div>
+              <div>
+                <div class="legend-name" style="color:rgba(200,230,255,0.7)">Air (n = 1.00)</div>
+                <div class="legend-desc">Low-index gaps — the key to Bragg reflection and iridescence.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Spacing readout -->
+          <div class="spacing-readout">
+            <div class="spacing-readout-label">Lattice Spacing d</div>
+            <div class="spacing-readout-value" id="schReadout">200 nm</div>
+          </div>
+
+          <!-- Slider in schematic -->
+          <div class="scheme-slider-group">
+            <div class="scheme-slider-label">
+              Adjust Spacing <span id="schSliderVal">200 nm</span>
+            </div>
+            <input type="range" id="schSpacingSlider" min="50" max="500" value="200" step="1"/>
+          </div>
+
+          <!-- Bragg result -->
+          <div class="bragg-result" id="braggResult">
+            λ = 2 × <span class="hl">200</span> × sin(30°) / 1<br/>
+            λ = <span class="hl2">200.0</span> nm
+          </div>
+
+          <!-- Return -->
+          <button class="return-btn" id="returnBtn">↑ Zoom Out — Back to Butterfly</button>
+        </div>
+
+      </div><!-- end schematic-inner -->
+    </div><!-- end schematicLayer -->
+
+  </div><!-- end zoom-theatre -->
+</div><!-- end stage -->
+
+<!-- ══════════ BOTTOM FACT CARDS ══════════ -->
+<div class="bottom-strip">
+
+  <div class="info-card">
+    <div class="info-card-title">Scale Factor</div>
+    <div class="fact-num">100×</div>
+    <div class="fact-unit">zoom level from wing to nano-ridge</div>
+    <p style="margin-top:10px">The butterfly wing spans ~10 cm. The chitin lamellae are spaced <strong>50–500 nm</strong> apart — six orders of magnitude smaller.</p>
+  </div>
+
+  <div class="info-card">
+    <div class="info-card-title">Structural Color Mechanism</div>
+    <div class="fact-num">~200</div>
+    <div class="fact-unit">nm — peak chitin layer thickness</div>
+    <p style="margin-top:10px">No pigment is used. Color arises entirely from <strong>thin-film interference</strong> in the alternating chitin/air stack — pure physics.</p>
+  </div>
+
+  <div class="info-card">
+    <div class="info-card-title">Anticounterfeiting Link</div>
+    <div class="fact-num">≥10⁹</div>
+    <div class="fact-unit">unique spectral configurations</div>
+    <p style="margin-top:10px">The angle-dependent spectral signature of nanolamellae is nearly impossible to replicate exactly — making them ideal <strong>physical unclonable functions</strong> for security tagging.</p>
+  </div>
+
+</div>
+
+<footer>
+  Butterfly Nanostructures · Anticounterfeiting · Structural Colors ·
+  <span>Macro-to-Nano Zoom v2.0</span>
+</footer>
+
+<script>
+// ════════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════════
+let zoomed = false;
+let animating = false;
+let spacing = 200; // nm
+let theta = 30;    // degrees (Bragg angle — fixed in this view, matches step1 default)
+let n = 1;
+
+// ════════════════════════════════════════════
+//  ELEMENTS
+// ════════════════════════════════════════════
+const theatre       = document.getElementById('zoomTheatre');
+const butterflyLayer= document.getElementById('butterflyLayer');
+const schematicLayer= document.getElementById('schematicLayer');
+const zoomPrompt    = document.getElementById('zoomPrompt');
+const magGlass      = document.getElementById('magGlass');
+const scaleLabel    = document.getElementById('scaleLabel');
+const zoomIndicator = document.getElementById('zoomIndicator');
+const scanOverlay   = document.getElementById('scanOverlay');
+const zoomBurst     = document.getElementById('zoomBurst');
+const returnBtn     = document.getElementById('returnBtn');
+const schSlider     = document.getElementById('schSpacingSlider');
+const schReadout    = document.getElementById('schReadout');
+const schSliderVal  = document.getElementById('schSliderVal');
+const braggResult   = document.getElementById('braggResult');
+const canvas        = document.getElementById('lamellaeCanvas');
+const ctx           = canvas.getContext('2d');
+
+// ════════════════════════════════════════════
+//  MAGNIFIER — follow mouse on butterfly
+// ════════════════════════════════════════════
+theatre.addEventListener('mousemove', e => {
+  if (zoomed || animating) return;
+  const rect = theatre.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  magGlass.style.left = x + 'px';
+  magGlass.style.top  = y + 'px';
+  magGlass.classList.add('visible');
+});
+theatre.addEventListener('mouseleave', () => {
+  magGlass.classList.remove('visible');
+});
+
+// ════════════════════════════════════════════
+//  ZOOM IN
+// ════════════════════════════════════════════
+theatre.addEventListener('click', e => {
+  if (zoomed || animating) return;
+  // Don't zoom if clicking return button
+  if (e.target.closest('#returnBtn')) return;
+  zoomIn();
+});
+
+function zoomIn() {
+  animating = true;
+  magGlass.classList.remove('visible');
+  zoomPrompt.style.opacity = '0';
+
+  // Step 1: scan-line flash
+  scanOverlay.classList.add('active');
+
+  // Step 2: scale counter zoom + butterfly scale
+  zoomIndicator.classList.add('visible');
+  let zoomLevel = 1;
+  const zoomTarget = 100;
+  const zoomDuration = 1100;
+  const zoomStart = performance.now();
+
+  function animateZoomCounter(now) {
+    const elapsed = now - zoomStart;
+    const t = Math.min(elapsed / zoomDuration, 1);
+    const eased = t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2,3)/2;
+    zoomLevel = 1 + (zoomTarget - 1) * eased;
+    zoomIndicator.textContent = Math.round(zoomLevel) + '×';
+    scaleLabel.textContent = formatScale(1 / zoomLevel);
+
+    // Progressively scale butterfly image
+    const imgScale = 1 + eased * 5;
+    butterflyLayer.style.transform = `scale(${imgScale})`;
+    butterflyLayer.style.filter    = `brightness(${1 + eased * 0.3})`;
+
+    if (t < 1) {
+      requestAnimationFrame(animateZoomCounter);
+    } else {
+      // Burst ring + crossfade
+      zoomBurst.classList.add('burst');
+      setTimeout(() => {
+        // Fade butterfly out, schematic in
+        butterflyLayer.style.opacity  = '0';
+        scanOverlay.classList.remove('active');
+        schematicLayer.classList.add('visible');
+        animating = false;
+        zoomed = true;
+        zoomBurst.classList.remove('burst');
+      }, 400);
+    }
+  }
+  requestAnimationFrame(animateZoomCounter);
+}
+
+function formatScale(invZoom) {
+  if (invZoom > 0.05) return '~10 cm';
+  if (invZoom > 0.01) return '~5 mm';
+  if (invZoom > 0.005) return '~500 μm';
+  if (invZoom > 0.001) return '~50 μm';
+  return '~200 nm';
+}
+
+// ════════════════════════════════════════════
+//  ZOOM OUT
+// ════════════════════════════════════════════
+returnBtn.addEventListener('click', e => {
+  e.stopPropagation();
+  if (!zoomed || animating) return;
+  zoomOut();
+});
+
+function zoomOut() {
+  animating = true;
+  schematicLayer.classList.remove('visible');
+
+  setTimeout(() => {
+    butterflyLayer.style.opacity   = '1';
+    butterflyLayer.style.transform = 'scale(1)';
+    butterflyLayer.style.filter    = 'brightness(1)';
+    zoomIndicator.textContent      = '1×';
+    scaleLabel.textContent         = '~10 cm';
+    zoomPrompt.style.opacity       = '1';
+    zoomed = false;
+    animating = false;
+  }, 500);
+}
+
+// ════════════════════════════════════════════
+//  SLIDER → update schematic
+// ════════════════════════════════════════════
+schSlider.addEventListener('input', () => {
+  spacing = +schSlider.value;
+  schReadout.textContent  = spacing + ' nm';
+  schSliderVal.textContent = spacing + ' nm';
+  updateBragg();
+  drawLamellae();
+});
+
+function updateBragg() {
+  const sinT = Math.sin(theta * Math.PI / 180);
+  const lambda = (2 * spacing * sinT / n).toFixed(1);
+  braggResult.innerHTML =
+    `λ = 2 × <span class="hl">${spacing}</span> × sin(${theta}°) / ${n}<br/>` +
+    `λ = <span class="hl2">${lambda}</span> nm`;
+}
+
+// ════════════════════════════════════════════
+//  CANVAS RESIZE
+// ════════════════════════════════════════════
+function resizeCanvas() {
+  const dpr = window.devicePixelRatio || 1;
+  const pane = canvas.parentElement;
+  const rect  = pane.getBoundingClientRect();
+  const W = rect.width  || 640;
+  const H = rect.height || 520;
+  canvas.width  = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width  = W + 'px';
+  canvas.style.height = H + 'px';
+  ctx.scale(dpr, dpr);
+  drawLamellae();
+}
+
+// ════════════════════════════════════════════
+//  CHRISTMAS TREE LAMELLAE SCHEMATIC
+// ════════════════════════════════════════════
+let animT = 0;
+let lamellaeAnimFrame;
+
+function drawLamellae() {
+  const W = canvas.width  / (window.devicePixelRatio || 1);
+  const H = canvas.height / (window.devicePixelRatio || 1);
+
+  ctx.clearRect(0, 0, W, H);
+
+  // Background
+  const bg = ctx.createRadialGradient(W/2, H/2, 0, W/2, H/2, Math.max(W,H)*0.7);
+  bg.addColorStop(0, 'rgba(10,15,40,0.95)');
+  bg.addColorStop(1, 'rgba(2,4,18,0.99)');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, W, H);
+
+  // Grid
+  ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+  ctx.lineWidth = 1;
+  for (let x = 0; x < W; x += 40) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+  for (let y = 0; y < H; y += 40) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+
+  // ── Draw multiple Christmas-Tree ridges ──
+  const numRidges = 4;
+  const ridgeWidth = W / (numRidges + 1);
+  for (let ri = 0; ri < numRidges; ri++) {
+    const cx = ridgeWidth * (ri + 1);
+    drawChristmasTree(ctx, cx, H * 0.08, H * 0.82, spacing, animT, W, H, ri);
+  }
+
+  // ── Dimension arrows ──
+  drawDimensions(ctx, W, H, spacing);
+
+  // Labels
+  ctx.font = '600 13px Outfit, sans-serif';
+  ctx.fillStyle = 'rgba(255,255,255,0.55)';
+  ctx.textAlign = 'center';
+  ctx.fillText('Christmas-Tree Ridge Cross-Section', W/2, H - 10);
+}
+
+// Draw a single Christmas Tree ridge with alternating chitin/air layers
+function drawChristmasTree(ctx, cx, topY, height, d_nm, t, W, H, ridgeIdx) {
+  // Scale: how many pixels per nm
+  // We display ≈ 1000 nm height in `height` pixels
+  const nmToPixel = height / 1000;
+
+  // Number of branch layers (each ≈ d_nm thick)
+  const nLayers = Math.max(3, Math.min(14, Math.floor(800 / d_nm)));
+  const layerPx = d_nm * nmToPixel;
+
+  // Main trunk
+  const trunkW = 10;
+  const trunkH = height;
+  const trunkX = cx - trunkW / 2;
+
+  // Draw trunk (chitin)
+  const trunkGrad = ctx.createLinearGradient(trunkX, topY, trunkX + trunkW, topY);
+  trunkGrad.addColorStop(0, '#0288d1');
+  trunkGrad.addColorStop(0.5, '#4fc3f7');
+  trunkGrad.addColorStop(1, '#0288d1');
+  ctx.fillStyle = trunkGrad;
+  ctx.fillRect(trunkX, topY, trunkW, trunkH);
+
+  // Draw layers (branches)
+  for (let li = 0; li < nLayers; li++) {
+    const layY   = topY + li * layerPx * 2;
+    const taper  = 1 - (li / nLayers) * 0.3; // taper from bottom to top
+    const baseHalfW = (W / (5 * 4 + 2)) * taper;
+
+    // Chitin branch (layer li)
+    const chitinY = layY;
+    const branchW = baseHalfW * 2;
+    const branchX = cx - baseHalfW;
+    const chitinH = layerPx;
+
+    // Animate shimmer offset
+    const shimmer = 0.5 + 0.5 * Math.sin(t * 1.5 + li * 0.6 + ridgeIdx * 1.1);
+    const alpha   = 0.7 + 0.3 * shimmer;
+
+    // Chitin gradient (blue)
+    const cGrad = ctx.createLinearGradient(branchX, chitinY, branchX + branchW, chitinY + chitinH);
+    cGrad.addColorStop(0, `rgba(2,136,209,${alpha * 0.6})`);
+    cGrad.addColorStop(0.3, `rgba(79,195,247,${alpha})`);
+    cGrad.addColorStop(0.7, `rgba(79,195,247,${alpha})`);
+    cGrad.addColorStop(1, `rgba(2,136,209,${alpha * 0.6})`);
+    ctx.fillStyle = cGrad;
+    ctx.beginPath();
+    ctx.roundRect(branchX, chitinY, branchW, chitinH, 3);
+    ctx.fill();
+
+    // Chitin label (left-most ridge only)
+    if (ridgeIdx === 0 && li === 2) {
+      ctx.font = '600 11px Outfit, sans-serif';
+      ctx.fillStyle = '#4fc3f7';
+      ctx.textAlign = 'right';
+      ctx.shadowColor = '#4fc3f7';
+      ctx.shadowBlur  = 6;
+      ctx.fillText('Chitin', branchX - 6, chitinY + chitinH / 2 + 4);
+      ctx.shadowBlur = 0;
+
+      // Arrow
+      drawArrow(ctx, branchX - 4, chitinY + chitinH/2, branchX + 2, chitinY + chitinH/2, '#4fc3f7');
+    }
+
+    // Air gap (below chitin branch)
+    const airY = chitinY + chitinH;
+    const airH = layerPx;
+    if (airY + airH < topY + height) {
+      ctx.fillStyle = `rgba(150,200,255,0.04)`;
+      ctx.strokeStyle = `rgba(150,200,255,${0.10 + 0.05 * shimmer})`;
+      ctx.lineWidth = 0.5;
+      ctx.setLineDash([3,3]);
+      ctx.beginPath();
+      ctx.roundRect(branchX, airY, branchW, airH, 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Air label (left-most ridge, once)
+      if (ridgeIdx === 0 && li === 3) {
+        ctx.font = '600 11px Outfit, sans-serif';
+        ctx.fillStyle = 'rgba(180,220,255,0.7)';
+        ctx.textAlign = 'right';
+        ctx.shadowColor = 'rgba(180,220,255,0.5)';
+        ctx.shadowBlur  = 5;
+        ctx.fillText('Air', branchX - 6, airY + airH / 2 + 4);
+        ctx.shadowBlur = 0;
+      }
+    }
+  }
+
+  // Iridescent glow around trunk
+  const glowGrad = ctx.createRadialGradient(cx, topY + height/2, 5, cx, topY + height/2, 60);
+  glowGrad.addColorStop(0, `rgba(79,195,247,${0.08 + 0.04 * Math.sin(t + ridgeIdx)})`);
+  glowGrad.addColorStop(1, 'transparent');
+  ctx.fillStyle = glowGrad;
+  ctx.fillRect(cx - 60, topY, 120, height);
+}
+
+// Dimension arrows showing d spacing
+function drawDimensions(ctx, W, H, d_nm) {
+  const nmToPixel = (H * 0.82) / 1000;
+  const layerPx   = d_nm * nmToPixel;
+  const rightX    = W - 40;
+  const topRef    = H * 0.08;
+
+  // Two layer markers
+  const y1 = topRef + layerPx * 2;
+  const y2 = topRef + layerPx * 4;
+
+  // Arrow line
+  ctx.strokeStyle = 'rgba(0,229,255,0.7)';
+  ctx.lineWidth   = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(rightX, y1);
+  ctx.lineTo(rightX, y2);
+  ctx.stroke();
+
+  // Ticks
+  [y1, y2].forEach(y => {
+    ctx.beginPath();
+    ctx.moveTo(rightX - 5, y);
+    ctx.lineTo(rightX + 5, y);
+    ctx.stroke();
+  });
+
+  // Label
+  ctx.font = '600 12px JetBrains Mono, monospace';
+  ctx.fillStyle = '#00e5ff';
+  ctx.textAlign = 'left';
+  ctx.shadowColor = '#00e5ff';
+  ctx.shadowBlur  = 6;
+  ctx.fillText(`d=${d_nm}nm`, rightX + 10, (y1 + y2) / 2 + 4);
+  ctx.shadowBlur  = 0;
+}
+
+function drawArrow(ctx, x1, y1, x2, y2, color) {
+  ctx.strokeStyle = color;
+  ctx.lineWidth   = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y2);
+  ctx.stroke();
+}
+
+// ════════════════════════════════════════════
+//  ANIMATION LOOP for lamellae shimmer
+// ════════════════════════════════════════════
+function startLamellaeAnim() {
+  cancelAnimationFrame(lamellaeAnimFrame);
+  function loop() {
+    animT += 0.018;
+    drawLamellae();
+    lamellaeAnimFrame = requestAnimationFrame(loop);
+  }
+  loop();
+}
+
+// ════════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════════
+window.addEventListener('resize', () => {
+  resizeCanvas();
+});
+
+// Initial setup
+updateBragg();
+resizeCanvas();
+startLamellaeAnim();
+</script>
+</body>
+</html>

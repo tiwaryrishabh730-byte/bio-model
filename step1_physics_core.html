@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Butterfly Nanostructures — Step 1: Physics Core Engine</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg:       #05060f;
+      --panel:    rgba(255,255,255,0.045);
+      --border:   rgba(255,255,255,0.10);
+      --accent1:  #7c5cfc;
+      --accent2:  #00e5ff;
+      --accent3:  #ff4ecd;
+      --accent4:  #39ff14;
+      --text:     #e8eaf6;
+      --muted:    #7986a3;
+      --glow1:    rgba(124,92,252,0.35);
+      --glow2:    rgba(0,229,255,0.35);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Star-field background ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 50% at 20% 10%, rgba(124,92,252,0.12) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 80% 80%, rgba(0,229,255,0.10) 0%, transparent 55%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── Header ── */
+    header {
+      position: relative;
+      z-index: 2;
+      text-align: center;
+      padding: 48px 24px 28px;
+    }
+    .badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      color: var(--accent2);
+      background: rgba(0,229,255,0.10);
+      border: 1px solid rgba(0,229,255,0.25);
+      padding: 5px 16px;
+      border-radius: 100px;
+      margin-bottom: 18px;
+    }
+    header h1 {
+      font-size: clamp(1.8rem, 4vw, 3.2rem);
+      font-weight: 900;
+      line-height: 1.15;
+      background: linear-gradient(120deg, #fff 0%, var(--accent2) 50%, var(--accent1) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    header p {
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 1rem;
+      max-width: 600px;
+      margin-inline: auto;
+    }
+
+    /* ── Layout ── */
+    .grid {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      gap: 22px;
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 0 24px 60px;
+    }
+
+    @media (max-width: 900px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+
+    /* ── Panel ── */
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 28px;
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+    }
+    .panel-title {
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 22px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .panel-title::before {
+      content: '';
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--accent2);
+      box-shadow: 0 0 8px var(--accent2);
+      flex-shrink: 0;
+    }
+
+    /* ── Bragg Section ── */
+    .formula-box {
+      background: rgba(0,0,0,0.35);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px;
+      padding: 20px;
+      margin-bottom: 28px;
+      text-align: center;
+    }
+    .formula-label { font-size: 0.72rem; color: var(--muted); letter-spacing: 1px; margin-bottom: 10px; text-transform: uppercase; }
+    .formula {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.55rem;
+      font-weight: 600;
+      color: #fff;
+      letter-spacing: 1px;
+    }
+    .formula span.sym { color: var(--accent2); }
+    .formula span.num { color: var(--accent1); }
+
+    /* ── Sliders ── */
+    .slider-group { margin-bottom: 26px; }
+    .slider-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 10px;
+    }
+    .slider-label { font-size: 0.92rem; font-weight: 500; }
+    .slider-label .sym { color: var(--accent2); font-family: 'JetBrains Mono', monospace; }
+    .slider-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--accent4);
+    }
+    input[type=range] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 6px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 6px;
+      outline: none;
+      cursor: pointer;
+      position: relative;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 20px; height: 20px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent2), var(--accent1));
+      box-shadow: 0 0 12px var(--glow2);
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    input[type=range]::-webkit-slider-thumb:hover {
+      transform: scale(1.25);
+      box-shadow: 0 0 22px var(--glow2);
+    }
+    .slider-track-wrapper { position: relative; }
+    .slider-fill {
+      position: absolute;
+      top: 50%;
+      left: 0;
+      height: 6px;
+      transform: translateY(-50%);
+      border-radius: 6px;
+      background: linear-gradient(90deg, var(--accent1), var(--accent2));
+      pointer-events: none;
+      transition: width 0.05s;
+    }
+
+    /* ── Output Metrics ── */
+    .metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px; }
+    .metric-card {
+      background: rgba(0,0,0,0.30);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px;
+      text-align: center;
+      transition: border-color 0.4s, box-shadow 0.4s;
+    }
+    .metric-card.highlight {
+      border-color: var(--accent4);
+      box-shadow: 0 0 18px rgba(57,255,20,0.25);
+    }
+    .metric-label { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); margin-bottom: 8px; }
+    .metric-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--accent2);
+    }
+    .metric-unit { font-size: 0.72rem; color: var(--muted); margin-top: 3px; }
+
+    /* ── Constructive indicator ── */
+    .interference-badge {
+      margin-top: 18px;
+      padding: 12px 16px;
+      border-radius: 12px;
+      text-align: center;
+      font-size: 0.85rem;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      transition: all 0.45s ease;
+      border: 1px solid transparent;
+    }
+    .interference-badge.constructive {
+      background: rgba(57,255,20,0.12);
+      border-color: rgba(57,255,20,0.4);
+      color: var(--accent4);
+      box-shadow: 0 0 20px rgba(57,255,20,0.20);
+    }
+    .interference-badge.partial {
+      background: rgba(255,193,7,0.10);
+      border-color: rgba(255,193,7,0.30);
+      color: #ffc107;
+    }
+    .interference-badge.destructive {
+      background: rgba(255,78,205,0.10);
+      border-color: rgba(255,78,205,0.30);
+      color: var(--accent3);
+    }
+
+    /* ── Color Swatch ── */
+    .color-swatch-section { margin-top: 20px; }
+    .swatch-label { font-size: 0.72rem; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 10px; }
+    .swatch-bar {
+      height: 38px;
+      border-radius: 10px;
+      transition: background 0.4s ease, box-shadow 0.4s ease;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .swatch-meta {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 8px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+
+    /* ── Right column: Canvas panels ── */
+    .right-col { display: flex; flex-direction: column; gap: 22px; }
+
+    canvas {
+      width: 100%;
+      border-radius: 12px;
+      display: block;
+    }
+    .canvas-wrapper { position: relative; }
+    .canvas-overlay-label {
+      position: absolute;
+      top: 12px;
+      left: 16px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.45);
+      pointer-events: none;
+    }
+    .glow-ring {
+      position: absolute;
+      inset: -2px;
+      border-radius: 14px;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.5s;
+      box-shadow: 0 0 30px 6px rgba(57,255,20,0.40);
+    }
+    .glow-ring.active { opacity: 1; }
+
+    /* ── Phase meter ── */
+    .phase-bar-wrapper {
+      margin-top: 8px;
+      background: rgba(0,0,0,0.3);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 18px;
+    }
+    .phase-bar-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .phase-bar-track {
+      height: 10px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .phase-bar-fill {
+      height: 100%;
+      border-radius: 10px;
+      background: linear-gradient(90deg, var(--accent3), var(--accent1), var(--accent2));
+      transition: width 0.1s;
+    }
+
+    /* ── Nanostructure diagram mini ── */
+    .nano-diagram-wrap {
+      margin-top: 20px;
+    }
+
+    /* ── Footer note ── */
+    footer {
+      text-align: center;
+      padding: 20px;
+      font-size: 0.78rem;
+      color: var(--muted);
+      position: relative;
+      z-index: 2;
+    }
+    footer span { color: var(--accent2); }
+  </style>
+</head>
+<body>
+
+<!-- ══════════ HEADER ══════════ -->
+<header>
+  <div class="badge">Butterfly Nanostructures · Anticounterfeiting</div>
+  <h1>Step 1 — Physics Core Engine</h1>
+  <p>Bragg's Law interference &amp; real-time wave superposition. The foundational ground truth of structural color.</p>
+</header>
+
+<!-- ══════════ MAIN GRID ══════════ -->
+<div class="grid">
+
+  <!-- ─── LEFT: Controls ─── -->
+  <div>
+    <!-- Bragg Formula -->
+    <div class="panel">
+      <div class="panel-title">Bragg's Law</div>
+      <div class="formula-box">
+        <div class="formula-label">Constructive Interference Condition</div>
+        <div class="formula">
+          <span class="num">n</span><span class="sym">λ</span>
+          = 2<span class="sym">d</span> sin(<span class="sym">θ</span>)
+        </div>
+      </div>
+
+      <!-- Spacing Slider -->
+      <div class="slider-group">
+        <div class="slider-header">
+          <span class="slider-label">Lattice Spacing <span class="sym">d</span></span>
+          <span class="slider-value" id="dVal">200 nm</span>
+        </div>
+        <div class="slider-track-wrapper">
+          <div class="slider-fill" id="dFill" style="width:40%"></div>
+          <input type="range" id="dSlider" min="50" max="500" value="200" step="1"/>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:5px;font-size:0.68rem;color:var(--muted)">
+          <span>50 nm</span><span>500 nm</span>
+        </div>
+      </div>
+
+      <!-- Angle Slider -->
+      <div class="slider-group">
+        <div class="slider-header">
+          <span class="slider-label">Glancing Angle <span class="sym">θ</span></span>
+          <span class="slider-value" id="thetaVal">30°</span>
+        </div>
+        <div class="slider-track-wrapper">
+          <div class="slider-fill" id="thetaFill" style="width:33.3%"></div>
+          <input type="range" id="thetaSlider" min="1" max="90" value="30" step="0.5"/>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:5px;font-size:0.68rem;color:var(--muted)">
+          <span>1°</span><span>90°</span>
+        </div>
+      </div>
+
+      <!-- Order n Slider -->
+      <div class="slider-group">
+        <div class="slider-header">
+          <span class="slider-label">Diffraction Order <span class="sym">n</span></span>
+          <span class="slider-value" id="nVal">1</span>
+        </div>
+        <div class="slider-track-wrapper">
+          <div class="slider-fill" id="nFill" style="width:20%"></div>
+          <input type="range" id="nSlider" min="1" max="5" value="1" step="1"/>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:5px;font-size:0.68rem;color:var(--muted)">
+          <span>n=1</span><span>n=5</span>
+        </div>
+      </div>
+
+      <!-- Metrics -->
+      <div class="metrics">
+        <div class="metric-card" id="lambdaCard">
+          <div class="metric-label">Peak λ (wavelength)</div>
+          <div class="metric-value" id="lambdaOut">—</div>
+          <div class="metric-unit">nanometres</div>
+        </div>
+        <div class="metric-card" id="phaseCard">
+          <div class="metric-label">Phase Shift Δφ</div>
+          <div class="metric-value" id="phaseOut">—</div>
+          <div class="metric-unit">radians</div>
+        </div>
+        <div class="metric-card" id="ampCard">
+          <div class="metric-label">Resultant Amp</div>
+          <div class="metric-value" id="ampOut">—</div>
+          <div class="metric-unit">relative units</div>
+        </div>
+        <div class="metric-card" id="freqCard">
+          <div class="metric-label">Frequency</div>
+          <div class="metric-value" id="freqOut">—</div>
+          <div class="metric-unit">× 10¹⁴ Hz</div>
+        </div>
+      </div>
+
+      <!-- Interference badge -->
+      <div class="interference-badge partial" id="interfereBadge">
+        ~ Partial Interference
+      </div>
+
+      <!-- Phase bar -->
+      <div class="phase-bar-wrapper">
+        <div class="phase-bar-label">
+          <span>Phase alignment to 2π</span>
+          <span id="phasePercent">0%</span>
+        </div>
+        <div class="phase-bar-track">
+          <div class="phase-bar-fill" id="phaseFill" style="width:0%"></div>
+        </div>
+      </div>
+
+      <!-- Color Swatch -->
+      <div class="color-swatch-section">
+        <div class="swatch-label">Predicted Structural Color</div>
+        <div class="swatch-bar" id="colorSwatch"></div>
+        <div class="swatch-meta">
+          <span id="colorName">—</span>
+          <span id="colorHex">—</span>
+        </div>
+      </div>
+    </div><!-- end left panel -->
+  </div><!-- end left col -->
+
+  <!-- ─── RIGHT: Canvases ─── -->
+  <div class="right-col">
+
+    <!-- Wave Summation Canvas -->
+    <div class="panel">
+      <div class="panel-title">Wave Summation Engine</div>
+      <div class="canvas-wrapper" style="position:relative">
+        <div class="glow-ring" id="waveGlow"></div>
+        <canvas id="waveCanvas" height="280"></canvas>
+        <div class="canvas-overlay-label">ψ₁ + ψ₂ = ψ<sub>R</sub></div>
+      </div>
+
+      <!-- Legend -->
+      <div style="display:flex;gap:20px;margin-top:12px;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:7px;font-size:0.8rem">
+          <div style="width:28px;height:3px;background:#7c5cfc;border-radius:2px"></div> Wave 1 (ψ₁)
+        </div>
+        <div style="display:flex;align-items:center;gap:7px;font-size:0.8rem">
+          <div style="width:28px;height:3px;background:#00e5ff;border-radius:2px"></div> Wave 2 (ψ₂)
+        </div>
+        <div style="display:flex;align-items:center;gap:7px;font-size:0.8rem">
+          <div style="width:28px;height:4px;background:#39ff14;border-radius:2px;box-shadow:0 0 6px #39ff14"></div> Resultant (ψ<sub>R</sub>)
+        </div>
+      </div>
+    </div>
+
+    <!-- Nanostructure Geometry Canvas -->
+    <div class="panel">
+      <div class="panel-title">Nanostructure Geometry</div>
+      <div class="canvas-wrapper">
+        <canvas id="geoCanvas" height="220"></canvas>
+      </div>
+    </div>
+
+  </div><!-- end right col -->
+</div><!-- end grid -->
+
+<footer>
+  Butterfly Nanostructures · Anticounterfeiting · Structural Colors ·
+  <span>Physics Core Engine v1.0</span> · n·λ = 2d·sin(θ)
+</footer>
+
+<script>
+// ════════════════════════════════════
+//  PHYSICS ENGINE — Core Calculations
+// ════════════════════════════════════
+const SPEED_OF_LIGHT = 3e8; // m/s
+
+function calculateInterference(d_nm, theta_deg, n) {
+  const theta_rad = theta_deg * Math.PI / 180;
+  const lambda_nm = (2 * d_nm * Math.sin(theta_rad)) / n;
+  return lambda_nm;
+}
+
+function wavelengthToColor(lambda) {
+  // Map nm → RGB with a smooth gamut curve
+  let r = 0, g = 0, b = 0;
+  if      (lambda >= 380 && lambda < 440) { r = -(lambda - 440) / 60;  g = 0; b = 1; }
+  else if (lambda >= 440 && lambda < 490) { r = 0; g = (lambda - 440) / 50; b = 1; }
+  else if (lambda >= 490 && lambda < 510) { r = 0; g = 1; b = -(lambda - 510) / 20; }
+  else if (lambda >= 510 && lambda < 580) { r = (lambda - 510) / 70; g = 1; b = 0; }
+  else if (lambda >= 580 && lambda < 645) { r = 1; g = -(lambda - 645) / 65; b = 0; }
+  else if (lambda >= 645 && lambda <= 780) { r = 1; g = 0; b = 0; }
+
+  // Intensity correction
+  let factor = 1;
+  if      (lambda >= 380 && lambda < 420) factor = 0.3 + 0.7 * (lambda - 380) / 40;
+  else if (lambda >= 700 && lambda <= 780) factor = 0.3 + 0.7 * (780 - lambda) / 80;
+
+  const R = Math.round(255 * Math.pow(r * factor, 0.8));
+  const G = Math.round(255 * Math.pow(g * factor, 0.8));
+  const B = Math.round(255 * Math.pow(b * factor, 0.8));
+  return { r: R, g: G, b: B };
+}
+
+function colorName(lambda) {
+  if (lambda < 380)  return 'Ultraviolet';
+  if (lambda < 450)  return 'Violet';
+  if (lambda < 485)  return 'Blue';
+  if (lambda < 500)  return 'Cyan / Blue';
+  if (lambda < 565)  return 'Green';
+  if (lambda < 590)  return 'Yellow-Green';
+  if (lambda < 625)  return 'Orange';
+  if (lambda < 750)  return 'Red';
+  return 'Infrared';
+}
+
+function rgbToHex(r, g, b) {
+  return '#' + [r,g,b].map(v => v.toString(16).padStart(2,'0')).join('');
+}
+
+// ════════════════════════════════════
+//  DOM ELEMENTS
+// ════════════════════════════════════
+const dSlider      = document.getElementById('dSlider');
+const thetaSlider  = document.getElementById('thetaSlider');
+const nSlider      = document.getElementById('nSlider');
+const dVal         = document.getElementById('dVal');
+const thetaVal     = document.getElementById('thetaVal');
+const nVal         = document.getElementById('nVal');
+const dFill        = document.getElementById('dFill');
+const thetaFill    = document.getElementById('thetaFill');
+const nFill        = document.getElementById('nFill');
+
+const lambdaOut    = document.getElementById('lambdaOut');
+const phaseOut     = document.getElementById('phaseOut');
+const ampOut       = document.getElementById('ampOut');
+const freqOut      = document.getElementById('freqOut');
+const phasePercent = document.getElementById('phasePercent');
+const phaseFill    = document.getElementById('phaseFill');
+const lambdaCard   = document.getElementById('lambdaCard');
+const phaseCard    = document.getElementById('phaseCard');
+const ampCard      = document.getElementById('ampCard');
+const freqCard     = document.getElementById('freqCard');
+
+const interfereBadge = document.getElementById('interfereBadge');
+const colorSwatch    = document.getElementById('colorSwatch');
+const colorNameEl    = document.getElementById('colorName');
+const colorHexEl     = document.getElementById('colorHex');
+
+const waveCanvas   = document.getElementById('waveCanvas');
+const waveCtx      = waveCanvas.getContext('2d');
+const waveGlow     = document.getElementById('waveGlow');
+
+const geoCanvas    = document.getElementById('geoCanvas');
+const geoCtx       = geoCanvas.getContext('2d');
+
+// ════════════════════════════════════
+//  STATE
+// ════════════════════════════════════
+let state = { d: 200, theta: 30, n: 1, t: 0 };
+let animFrame;
+let constructiveGlow = 0; // 0→1 glow intensity
+let constructivePulse = false;
+let lastConstructive = false;
+
+// ════════════════════════════════════
+//  UPDATE SLIDER FILLS
+// ════════════════════════════════════
+function updateFill(slider, fillEl) {
+  const min = +slider.min, max = +slider.max, val = +slider.value;
+  const pct = ((val - min) / (max - min)) * 100;
+  fillEl.style.width = pct + '%';
+}
+
+// ════════════════════════════════════
+//  RESIZE CANVASES
+// ════════════════════════════════════
+function resizeCanvases() {
+  const dpr = window.devicePixelRatio || 1;
+  [waveCanvas, geoCanvas].forEach(c => {
+    const rect = c.parentElement.getBoundingClientRect();
+    const w = rect.width || 600;
+    const hAttr = +c.getAttribute('height');
+    c.width  = w * dpr;
+    c.height = hAttr * dpr;
+    c.style.width  = w + 'px';
+    c.style.height = hAttr + 'px';
+    c.getContext('2d').scale(dpr, dpr);
+  });
+}
+
+// ════════════════════════════════════
+//  PHYSICS UPDATE
+// ════════════════════════════════════
+function updatePhysics() {
+  const d     = state.d;
+  const theta = state.theta;
+  const n     = state.n;
+
+  const lambda = calculateInterference(d, theta, n);
+
+  // Phase shift Δφ = 2π · (2d·sinθ) / λ  ≡ 2π·n (when on constructive)
+  // More generally for any arbitrary λ₀ (use λ₀ = 550nm as reference)
+  const lambda_ref = 550; // nm — reference green
+  const pathDiff = 2 * d * Math.sin(theta * Math.PI / 180);
+  const deltaPhiRad = (2 * Math.PI * pathDiff) / lambda_ref;
+
+  // Normalise to [0, 2π)
+  const phi_mod = ((deltaPhiRad % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+  const alignPct = (1 - Math.abs(phi_mod - Math.PI) / Math.PI) * 100; // 100% when φ=0 or 2π
+
+  // Resultant amplitude: A_R = 2A·cos(Δφ/2)
+  const amplitude = Math.abs(2 * Math.cos(deltaPhiRad / 2));
+
+  const freq = lambda > 0 ? (SPEED_OF_LIGHT / (lambda * 1e-9)) / 1e14 : 0;
+
+  // Construct / Destruct threshold
+  const nearConstructive = phi_mod < 0.18 || phi_mod > (2 * Math.PI - 0.18);
+  const nearDestructive  = Math.abs(phi_mod - Math.PI) < 0.18;
+
+  // DOM updates
+  lambdaOut.textContent = lambda > 0 ? lambda.toFixed(1) : '—';
+  phaseOut.textContent  = deltaPhiRad.toFixed(2);
+  ampOut.textContent    = amplitude.toFixed(3);
+  freqOut.textContent   = lambda > 0 ? freq.toFixed(2) : '—';
+  phasePercent.textContent = alignPct.toFixed(0) + '%';
+  phaseFill.style.width = alignPct + '%';
+
+  // Badge
+  if (nearConstructive) {
+    interfereBadge.className = 'interference-badge constructive';
+    interfereBadge.textContent = '★ Constructive Interference — Bright Color!';
+  } else if (nearDestructive) {
+    interfereBadge.className = 'interference-badge destructive';
+    interfereBadge.textContent = '✕ Destructive Interference — Extinction';
+  } else {
+    interfereBadge.className = 'interference-badge partial';
+    interfereBadge.textContent = '~ Partial Interference';
+  }
+
+  // Metric card glow on constructive
+  [lambdaCard, phaseCard, ampCard, freqCard].forEach(c => {
+    c.classList.toggle('highlight', nearConstructive);
+  });
+
+  // Glow ring on wave canvas
+  constructivePulse = nearConstructive;
+  waveGlow.classList.toggle('active', nearConstructive);
+
+  // Structural color swatch
+  if (lambda >= 380 && lambda <= 780) {
+    const rgb = wavelengthToColor(lambda);
+    const hex = rgbToHex(rgb.r, rgb.g, rgb.b);
+    const glowAlpha = nearConstructive ? '0.8' : '0.5';
+    colorSwatch.style.background = `rgba(${rgb.r},${rgb.g},${rgb.b},${glowAlpha})`;
+    colorSwatch.style.boxShadow  = nearConstructive
+      ? `0 0 24px rgba(${rgb.r},${rgb.g},${rgb.b},0.6)` : 'none';
+    colorNameEl.textContent = colorName(lambda);
+    colorHexEl.textContent  = hex;
+  } else {
+    colorSwatch.style.background = 'rgba(255,255,255,0.05)';
+    colorSwatch.style.boxShadow  = 'none';
+    const region = lambda < 380 ? 'UV (invisible)' : 'IR (invisible)';
+    colorNameEl.textContent = region;
+    colorHexEl.textContent  = '—';
+  }
+
+  return { lambda, deltaPhiRad, amplitude, phi_mod, nearConstructive };
+}
+
+// ════════════════════════════════════
+//  WAVE CANVAS RENDERING
+// ════════════════════════════════════
+function drawWaves(phyData) {
+  const { deltaPhiRad, amplitude, nearConstructive } = phyData;
+  const W = waveCanvas.width  / (window.devicePixelRatio || 1);
+  const H = waveCanvas.height / (window.devicePixelRatio || 1);
+  const ctx = waveCtx;
+  const t = state.t;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // Background grid
+  ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+  ctx.lineWidth = 1;
+  for (let x = 0; x < W; x += 60) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+  }
+  for (let y = 0; y < H; y += H/6) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+  }
+
+  // Zero line
+  const cx = H / 2;
+  ctx.setLineDash([6, 4]);
+  ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(0, cx); ctx.lineTo(W, cx); ctx.stroke();
+  ctx.setLineDash([]);
+
+  const A = H * 0.14; // base amplitude from canvas height
+  const kx = (2 * Math.PI) / (W * 0.55); // wave number
+  const omega = 1.2; // angular speed of animation
+
+  // ── Wave 1: ψ₁ = A·sin(kx - ωt) ──
+  ctx.beginPath();
+  ctx.strokeStyle = '#7c5cfc';
+  ctx.lineWidth = 2.5;
+  ctx.shadowColor = '#7c5cfc';
+  ctx.shadowBlur  = 8;
+  for (let px = 0; px <= W; px += 1.5) {
+    const y = cx - A * Math.sin(kx * px - omega * t);
+    px === 0 ? ctx.moveTo(px, y) : ctx.lineTo(px, y);
+  }
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  // ── Wave 2: ψ₂ = A·sin(kx - ωt + Δφ) ──
+  ctx.beginPath();
+  ctx.strokeStyle = '#00e5ff';
+  ctx.lineWidth = 2.5;
+  ctx.shadowColor = '#00e5ff';
+  ctx.shadowBlur  = 8;
+  for (let px = 0; px <= W; px += 1.5) {
+    const y = cx - A * Math.sin(kx * px - omega * t + deltaPhiRad);
+    px === 0 ? ctx.moveTo(px, y) : ctx.lineTo(px, y);
+  }
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  // ── Resultant ψ_R = ψ₁ + ψ₂ ──
+  const resultAmplitude = nearConstructive ? A * 2 : Math.abs(2 * A * Math.cos(deltaPhiRad / 2));
+  const glowStr = nearConstructive ? 28 : 8;
+  const color   = nearConstructive ? '#39ff14' : '#b8ff3a';
+
+  ctx.beginPath();
+  ctx.strokeStyle = color;
+  ctx.lineWidth   = nearConstructive ? 3.5 : 2.8;
+  ctx.shadowColor = color;
+  ctx.shadowBlur  = glowStr;
+  for (let px = 0; px <= W; px += 1.5) {
+    const y1 =  A * Math.sin(kx * px - omega * t);
+    const y2 =  A * Math.sin(kx * px - omega * t + deltaPhiRad);
+    const y  = cx - (y1 + y2);
+    px === 0 ? ctx.moveTo(px, y) : ctx.lineTo(px, y);
+  }
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  // ── Constructive burst effect ──
+  if (nearConstructive) {
+    const pulse = (Math.sin(t * 3) + 1) / 2; // 0→1 pulsing
+    const grad = ctx.createLinearGradient(0, 0, 0, H);
+    grad.addColorStop(0, `rgba(57,255,20,${0.08 * pulse})`);
+    grad.addColorStop(0.5, `rgba(57,255,20,${0.04 * pulse})`);
+    grad.addColorStop(1, `rgba(57,255,20,${0.08 * pulse})`);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  // Labels at top-left corner
+  const labels = [
+    { text: 'ψ₁', color: '#7c5cfc', y: 18 },
+    { text: 'ψ₂', color: '#00e5ff', y: 36 },
+    { text: 'ψ_R', color: '#39ff14', y: 54 },
+  ];
+  ctx.font = '600 13px JetBrains Mono, monospace';
+  labels.forEach(lb => {
+    ctx.fillStyle = lb.color;
+    ctx.shadowColor = lb.color;
+    ctx.shadowBlur  = 6;
+    ctx.fillText(lb.text, W - 48, lb.y);
+    ctx.shadowBlur = 0;
+  });
+}
+
+// ════════════════════════════════════
+//  GEOMETRY CANVAS RENDERING
+// ════════════════════════════════════
+function drawGeometry() {
+  const W = geoCanvas.width  / (window.devicePixelRatio || 1);
+  const H = geoCanvas.height / (window.devicePixelRatio || 1);
+  const ctx = geoCtx;
+  const d = state.d;
+  const theta_deg = state.theta;
+  const theta_rad = theta_deg * Math.PI / 180;
+  const t = state.t;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // Number of layers and spacing on canvas
+  const nLayers = 6;
+  const scaleD  = Math.min(H * 0.6 / (nLayers * 3), 22); // visual spacing
+  const layerSep = Math.max(scaleD * (d / 200), 6);
+  const startY = H * 0.12;
+  const layerW = W * 0.75;
+  const offsetX = W * 0.13;
+
+  // draw layers with iridescent shading
+  for (let i = 0; i < nLayers; i++) {
+    const y = startY + i * Math.min(layerSep, (H * 0.7) / nLayers);
+    const hue = 240 + i * 25;
+    const alpha = 0.35 + 0.25 * Math.sin(t * 0.8 + i * 0.5);
+    ctx.beginPath();
+    ctx.rect(offsetX, y - 4, layerW, 8);
+    const g = ctx.createLinearGradient(offsetX, y, offsetX + layerW, y);
+    g.addColorStop(0, `hsla(${hue},90%,65%,${alpha})`);
+    g.addColorStop(0.5, `hsla(${hue + 60},90%,75%,${alpha + 0.15})`);
+    g.addColorStop(1, `hsla(${hue},90%,65%,${alpha})`);
+    ctx.fillStyle = g;
+    ctx.fill();
+    ctx.strokeStyle = `hsla(${hue},80%,70%,0.4)`;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+
+  // ── Incident ray ──
+  const midX = offsetX + layerW * 0.38;
+  const topY  = startY - 40;
+  const hitX  = midX;
+  const hitY  = startY + 2;
+  const rayLen = 60;
+
+  const dx = -rayLen * Math.cos(theta_rad);
+  const dy =  rayLen * Math.sin(theta_rad);
+
+  ctx.beginPath();
+  ctx.strokeStyle = '#ffd600';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([6, 3]);
+  ctx.shadowColor = '#ffd600'; ctx.shadowBlur = 8;
+  ctx.moveTo(hitX + dx * 1.8, hitY - dy * 1.8);
+  ctx.lineTo(hitX, hitY);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.shadowBlur = 0;
+
+  // ── Reflected ray ──
+  const rx =  rayLen * Math.cos(theta_rad);
+  const ry =  rayLen * Math.sin(theta_rad);
+  ctx.beginPath();
+  ctx.strokeStyle = '#ff6b00';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([6, 3]);
+  ctx.shadowColor = '#ff6b00'; ctx.shadowBlur = 8;
+  ctx.moveTo(hitX, hitY);
+  ctx.lineTo(hitX + rx * 1.8, hitY - ry * 1.8);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.shadowBlur = 0;
+
+  // ── Angle arc ──
+  ctx.beginPath();
+  ctx.strokeStyle = 'rgba(255,214,0,0.5)';
+  ctx.lineWidth = 1.5;
+  ctx.arc(hitX, hitY, 28, -Math.PI/2 - theta_rad, -Math.PI/2);
+  ctx.stroke();
+
+  // ── Normal line ──
+  ctx.beginPath();
+  ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4,3]);
+  ctx.moveTo(hitX, hitY - 50); ctx.lineTo(hitX, hitY + 20);
+  ctx.stroke(); ctx.setLineDash([]);
+
+  // ── Path difference arrow ──
+  const pLayer = startY + Math.min(layerSep, (H * 0.7) / nLayers);
+  ctx.beginPath();
+  ctx.strokeStyle = 'rgba(0,229,255,0.6)';
+  ctx.lineWidth = 1.5;
+  ctx.moveTo(midX + 50, startY); ctx.lineTo(midX + 50, pLayer);
+  ctx.stroke();
+
+  // Labels
+  ctx.font = 'bold 13px Outfit, sans-serif';
+  ctx.fillStyle = '#ffd600';
+  ctx.shadowColor = '#ffd600'; ctx.shadowBlur = 5;
+  ctx.fillText(`θ = ${theta_deg.toFixed(1)}°`, hitX + 32, hitY - 12);
+  ctx.shadowBlur = 0;
+
+  ctx.fillStyle = '#00e5ff';
+  ctx.shadowColor = '#00e5ff'; ctx.shadowBlur = 5;
+  ctx.fillText(`d = ${d} nm`, midX + 55, (startY + pLayer) / 2);
+  ctx.shadowBlur = 0;
+
+  ctx.font = '11px Outfit, sans-serif';
+  ctx.fillStyle = 'rgba(255,255,255,0.5)';
+  ctx.fillText('incident', hitX + dx * 1.8 - 20, hitY - dy * 1.8 - 6);
+  ctx.fillText('reflected', hitX + rx * 1.8 + 4, hitY - ry * 1.8 - 6);
+}
+
+// ════════════════════════════════════
+//  ANIMATION LOOP
+// ════════════════════════════════════
+function animate() {
+  state.t += 0.025;
+  const phyData = updatePhysics();
+  drawWaves(phyData);
+  drawGeometry();
+  animFrame = requestAnimationFrame(animate);
+}
+
+// ════════════════════════════════════
+//  SLIDER EVENT HANDLERS
+// ════════════════════════════════════
+dSlider.addEventListener('input', () => {
+  state.d = +dSlider.value;
+  dVal.textContent = state.d + ' nm';
+  updateFill(dSlider, dFill);
+});
+
+thetaSlider.addEventListener('input', () => {
+  state.theta = +thetaSlider.value;
+  thetaVal.textContent = state.theta + '°';
+  updateFill(thetaSlider, thetaFill);
+});
+
+nSlider.addEventListener('input', () => {
+  state.n = +nSlider.value;
+  nVal.textContent = state.n;
+  updateFill(nSlider, nFill);
+});
+
+// ════════════════════════════════════
+//  INIT
+// ════════════════════════════════════
+window.addEventListener('resize', () => {
+  cancelAnimationFrame(animFrame);
+  resizeCanvases();
+  animate();
+});
+
+resizeCanvases();
+updateFill(dSlider, dFill);
+updateFill(thetaSlider, thetaFill);
+updateFill(nSlider, nFill);
+animate();
+</script>
+</body>
+</html>
